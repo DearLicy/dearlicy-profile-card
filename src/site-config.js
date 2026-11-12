@@ -14,8 +14,6 @@ export const DEFAULT_SITE_CONFIG = Object.freeze({
   allowedUsers: ["DearLicy"],
   repoUrl: DEFAULT_REPO_URL,
   card: DEFAULT_CARD_CONFIG,
-  oauthClientId: "",
-  oauthLogin: "",
   updatedAt: "",
 });
 
@@ -62,22 +60,12 @@ export function normalizeSiteConfig(input = {}) {
   if (!allowedUsers.some((login) => login.toLowerCase() === defaultUsername.toLowerCase())) {
     allowedUsers.unshift(defaultUsername);
   }
-  const oauthClientId = String(source.oauthClientId || "")
-    .trim()
-    .slice(0, 120);
-
   return {
     mode: source.mode === "private" ? "private" : "public",
     defaultUsername,
     allowedUsers,
     repoUrl: httpsUrl(source.repoUrl, DEFAULT_REPO_URL),
     card: normalizeCardConfig(source.card || {}),
-    oauthClientId: /^[A-Za-z0-9_-]{6,120}$/.test(oauthClientId)
-      ? oauthClientId
-      : "",
-    oauthLogin: String(source.oauthLogin || "")
-      .trim()
-      .slice(0, 39),
     updatedAt: String(source.updatedAt || "").slice(0, 40),
   };
 }
@@ -101,7 +89,9 @@ export function publicSiteConfig(site) {
         key,
         {
           label: theme.label,
+          labelZh: theme.labelZh,
           note: theme.note,
+          noteZh: theme.noteZh,
           layout: theme.layout,
           dark: theme.dark,
           swatches: theme.swatches,

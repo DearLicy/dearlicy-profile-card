@@ -27,7 +27,7 @@ const BASE_HEADERS = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 const PAGE_CSP =
-  "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+  "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 class ProfileAccessError extends Error {
   constructor(login) {
@@ -108,17 +108,15 @@ async function runtimeContext(env) {
       });
     }
   }
-  const githubToken =
-    secrets.oauthToken || secrets.githubToken || env.GITHUB_TOKEN || "";
+  const environmentToken = String(env.GITHUB_TOKEN || "");
+  const githubToken = secrets.githubToken || environmentToken;
   return {
     site,
     secrets,
     env: {
       ...env,
       GITHUB_TOKEN: githubToken,
-      GITHUB_CLIENT_ID: site.oauthClientId || env.GITHUB_CLIENT_ID || "",
-      GITHUB_CLIENT_SECRET:
-        secrets.oauthClientSecret || env.GITHUB_CLIENT_SECRET || "",
+      GITHUB_TOKEN_FROM_ENV: environmentToken,
     },
   };
 }

@@ -17,5 +17,8 @@
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "@shoelace-style/shoelace": "^2.20.1"
   }
 }

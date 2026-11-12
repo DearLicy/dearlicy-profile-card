@@ -45,6 +45,10 @@ test("persists public config and encrypts stored credentials", async () => {
       adminSecret: "a-different-admin-secret-with-24-chars",
     });
     assert.equal((await wrongSecretStore.getSecrets()).githubToken, "");
+
+    await store.clearSecret("githubToken");
+    assert.equal((await store.getSecrets()).githubToken, "");
+    assert.equal((await store.status()).hasToken, false);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

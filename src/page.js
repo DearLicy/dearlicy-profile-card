@@ -1,63 +1,46 @@
 import { CARD_THEMES, DEFAULT_CARD_CONFIG } from "./config.js";
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function json(value) {
-  return JSON.stringify(value)
-    .replaceAll("<", "\\u003c")
-    .replaceAll("\u2028", "\\u2028")
-    .replaceAll("\u2029", "\\u2029");
-}
-
-const ICONS = {
-  github:
-    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.8a10.2 10.2 0 0 0-3.2 19.9c.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.7-1.4-2.3-.3-4.7-1.1-4.7-5a3.9 3.9 0 0 1 1-2.7c-.1-.3-.4-1.3.1-2.7 0 0 .9-.3 2.8 1.1a9.6 9.6 0 0 1 5.1 0c1.9-1.4 2.8-1.1 2.8-1.1.5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.7 5 .4.3.7 1 .7 2v2.9c0 .3.2.6.7.5A10.2 10.2 0 0 0 12 1.8Z"/></svg>',
-  arrow:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  copy:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M15 5H6.8A1.8 1.8 0 0 0 5 6.8V15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
-  external:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M10 6H6.8A1.8 1.8 0 0 0 5 7.8v9.4A1.8 1.8 0 0 0 6.8 19h9.4a1.8 1.8 0 0 0 1.8-1.8V14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  search:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.4" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
-  refresh:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 8a7 7 0 1 0 .4 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M19 4v4h-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  admin:
-    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.7 2.8 8.1 7 10 4.2-1.9 7-5.3 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9.5 12 1.7 1.7 3.6-3.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  moon:
-    '<svg class="moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
-  sun:
-    '<svg class="sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
-};
+import {
+  COMPONENT_THEME_LINKS,
+  FAVICON_LINK,
+  ICONS,
+  SHOELACE_IMPORTS,
+  SHOELACE_IMPORT_MAP,
+  escapeHtml,
+  json,
+  themeBootScript,
+} from "./ui.js";
 
 function themeCards(activeTheme) {
   return Object.entries(CARD_THEMES)
     .map(([key, theme]) => {
       const [a, b, c] = theme.swatches;
-      return `<button class="theme-card${key === activeTheme ? " is-active" : ""}" type="button" data-theme-key="${key}" aria-pressed="${key === activeTheme ? "true" : "false"}">
+      return `<sl-button class="theme-card${key === activeTheme ? " is-active" : ""}" data-theme-key="${key}" aria-pressed="${key === activeTheme ? "true" : "false"}">
         <span class="theme-art" style="--swatch-a:${a};--swatch-b:${b};--swatch-c:${c}">
           <i class="theme-art-orb"></i>
           <i class="theme-art-line"></i>
         </span>
-        <span class="theme-name"><strong>${escapeHtml(theme.label)}</strong><small>${escapeHtml(theme.note)}</small></span>
-        <span class="theme-check" aria-hidden="true">✓</span>
-      </button>`;
+        <span class="theme-name"><strong>${escapeHtml(theme.labelZh || theme.label)}</strong><small>${escapeHtml(theme.noteZh || theme.note)}</small></span>
+        <span class="theme-check" aria-hidden="true">${ICONS.check}</span>
+      </sl-button>`;
     })
     .join("");
 }
 
-function field({ id, label, value = "", maxlength = 64, placeholder = "", textarea = false }) {
-  const safeValue = escapeHtml(value);
-  const control = textarea
-    ? `<textarea class="input" id="${id}" maxlength="${maxlength}" placeholder="${escapeHtml(placeholder)}">${safeValue}</textarea>`
-    : `<input class="input" id="${id}" type="text" value="${safeValue}" maxlength="${maxlength}" placeholder="${escapeHtml(placeholder)}" autocomplete="off" spellcheck="false">`;
-  return `<label class="field"><span>${escapeHtml(label)}</span>${control}</label>`;
+function field({
+  id,
+  label,
+  value = "",
+  maxlength = 64,
+  placeholder = "",
+  textarea = false,
+  type = "text",
+  help = "",
+}) {
+  const common = `id="${id}" label="${escapeHtml(label)}" value="${escapeHtml(value)}" maxlength="${maxlength}" placeholder="${escapeHtml(placeholder)}" ${help ? `help-text="${escapeHtml(help)}"` : ""}`;
+  if (textarea) {
+    return `<sl-textarea ${common} rows="3" resize="vertical"></sl-textarea>`;
+  }
+  return `<sl-input ${common} type="${escapeHtml(type)}" autocomplete="off" spellcheck="false"></sl-input>`;
 }
 
 export function renderStudioPage({
@@ -65,7 +48,6 @@ export function renderStudioPage({
   defaultUsername = "DearLicy",
   mode = "public",
   repoUrl = "https://github.com/DearLicy/dearlicy-profile-card",
-  adminAvailable = false,
   initialCardConfig = DEFAULT_CARD_CONFIG,
 }) {
   const baseOrigin = String(origin).replace(/\/+$/, "");
@@ -73,10 +55,10 @@ export function renderStudioPage({
   const safeUsername = escapeHtml(defaultUsername);
   const safeRepoUrl = escapeHtml(repoUrl);
   const isPrivate = mode === "private";
-  const modeLabel = isPrivate ? "PRIVATE INSTANCE" : "PUBLIC API";
+  const modeLabel = isPrivate ? "自用模式" : "公开服务";
   const modeDescription = isPrivate
-    ? "仅允许管理员配置的 GitHub 用户"
-    : "任何公开 GitHub 主页均可生成";
+    ? "仅允许管理员授权的 GitHub 用户使用"
+    : "任何公开的 GitHub 主页都可以生成";
   const initial = {
     ...DEFAULT_CARD_CONFIG,
     ...initialCardConfig,
@@ -86,9 +68,6 @@ export function renderStudioPage({
     },
   };
   const initialTheme = CARD_THEMES[initial.theme] ? initial.theme : "midnight";
-  const adminLink = adminAvailable
-    ? `<a class="icon-button admin-link" href="/admin" title="管理后台">${ICONS.admin}</a>`
-    : "";
 
   return `<!doctype html>
 <html lang="zh-CN" data-theme="dark">
@@ -97,17 +76,12 @@ export function renderStudioPage({
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="description" content="把任意 GitHub 主页变成一张实时更新、可定制的动态 SVG 卡片。">
-  <title>Profile Card Studio · 一张会呼吸的 GitHub 卡片</title>
-  <script>
-    try {
-      const searchTheme = new URLSearchParams(location.search).get("theme");
-      document.documentElement.dataset.theme =
-        searchTheme === "light" || searchTheme === "dark"
-          ? searchTheme
-          : localStorage.getItem("profile-card-theme") || "dark";
-    } catch {}
-  </script>
+  <meta name="description" content="把任意 GitHub 主页变成一张实时更新、可定制的动态卡片。">
+  <title>主页卡片 · 一张实时更新的 GitHub 名片</title>
+  ${FAVICON_LINK}
+  ${themeBootScript("profile-card-theme")}
+  ${COMPONENT_THEME_LINKS}
+  ${SHOELACE_IMPORT_MAP}
   <style>
     :root {
       --canvas: #0c0d10;
@@ -127,9 +101,11 @@ export function renderStudioPage({
       --accent-line: rgba(203,185,255,.28);
       --on-accent: #17131e;
       --danger: #ee9ba3;
+      --success: #7bd7b2;
       --shadow: 0 34px 100px rgba(0,0,0,.5);
       --shadow-soft: 0 18px 50px rgba(0,0,0,.24);
       --ease: cubic-bezier(.22,1,.36,1);
+      --font-sans: "Geist", "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     html[data-theme="light"] {
       --canvas: #f3efe7;
@@ -149,6 +125,7 @@ export function renderStudioPage({
       --accent-line: rgba(99,81,213,.25);
       --on-accent: #ffffff;
       --danger: #b23e4b;
+      --success: #14795d;
       --shadow: 0 34px 100px rgba(53,42,77,.14);
       --shadow-soft: 0 18px 50px rgba(53,42,77,.08);
     }
@@ -161,14 +138,12 @@ export function renderStudioPage({
       overflow-x: hidden;
       background: var(--canvas);
       color: var(--ink);
-      font-family: "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-sans);
       font-size: 16px;
-      line-height: 1.5;
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
       text-rendering: geometricPrecision;
     }
-    button, input, textarea { font: inherit; }
-    button, a { -webkit-tap-highlight-color: transparent; }
     a { color: inherit; }
     .app-mesh {
       position: fixed;
@@ -194,8 +169,8 @@ export function renderStudioPage({
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      min-height: 76px;
-      padding: 13px max(20px, calc((100vw - 1376px) / 2));
+      min-height: 74px;
+      padding: 12px max(20px, calc((100vw - 1376px) / 2));
       border-bottom: 1px solid var(--line);
       background: color-mix(in srgb, var(--canvas) 84%, transparent);
       backdrop-filter: blur(20px) saturate(130%);
@@ -213,8 +188,9 @@ export function renderStudioPage({
       border-radius: 15px;
       background: var(--accent);
       color: var(--on-accent);
-      font: 800 11px/1 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .08em;
+      font-size: 16px;
+      font-weight: 780;
+      letter-spacing: -.08em;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
     }
     .brand-mark::after {
@@ -228,201 +204,93 @@ export function renderStudioPage({
       transform: translate(13px, -13px);
     }
     .brand-copy { display: flex; flex-direction: column; min-width: 0; line-height: 1.18; }
-    .brand-copy strong { font-size: 14.5px; font-weight: 700; letter-spacing: -.015em; white-space: nowrap; }
-    .brand-copy span { color: var(--muted); font-size: 10.5px; letter-spacing: .035em; white-space: nowrap; }
-    .mode-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 34px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--surface);
-      color: var(--muted);
-      font: 600 9px/1 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .1em;
-      white-space: nowrap;
-    }
-    .mode-pill i {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 4px var(--accent-soft);
-    }
-    .mode-pill.is-private i { background: #efba77; box-shadow: 0 0 0 4px rgba(239,186,119,.1); }
+    .brand-copy strong { font-size: 14.5px; font-weight: 720; letter-spacing: -.015em; white-space: nowrap; }
+    .brand-copy span { color: var(--muted); font-size: 11px; white-space: nowrap; }
     .top-actions { display: flex; align-items: center; gap: 8px; }
-    .icon-button {
-      display: grid;
-      place-items: center;
-      width: 42px;
-      height: 42px;
-      flex: 0 0 auto;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: var(--surface);
-      color: var(--muted);
-      text-decoration: none;
-      cursor: pointer;
-      transition: transform 160ms var(--ease), background 180ms, color 180ms, border-color 180ms;
-    }
-    .icon-button:hover { color: var(--ink); background: var(--surface-2); border-color: var(--line-strong); }
-    .icon-button:active { transform: scale(.96); }
-    .icon-button svg { width: 18px; height: 18px; }
-    .icon-button .sun { display: none; }
-    html[data-theme="light"] .icon-button .sun { display: block; }
-    html[data-theme="light"] .icon-button .moon { display: none; }
-    .repo-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      min-height: 42px;
-      padding: 0 17px;
-      border: 1px solid var(--accent-line);
-      border-radius: 999px;
-      background: var(--accent);
-      color: var(--on-accent);
-      font-size: 12px;
-      font-weight: 700;
-      text-decoration: none;
-      box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 19%, transparent);
-      transition: transform 160ms var(--ease), background 180ms;
-    }
-    .repo-button:hover { transform: translateY(-1px); background: var(--accent-strong); }
-    .repo-button:active { transform: scale(.98); }
-    .repo-button svg { width: 16px; height: 16px; }
-    .shell {
-      width: min(1376px, calc(100% - 48px));
-      margin: 0 auto;
-      padding: 64px 0 42px;
-    }
+    .compact-badge { margin-left: 2px; }
+    .shell { width: min(1376px, calc(100% - 48px)); margin: 0 auto; padding: 58px 0 42px; }
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: end;
-      gap: 34px;
-      margin-bottom: 44px;
+      gap: 36px;
+      margin-bottom: 42px;
     }
     .eyebrow {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
+      gap: 9px;
       color: var(--muted);
-      font: 600 10px/1.3 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .15em;
+      font-size: 12px;
+      font-weight: 650;
     }
-    .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--accent); }
+    .eyebrow i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px var(--accent-soft);
+    }
     h1 {
-      max-width: 880px;
-      margin: 17px 0 0;
-      font-size: clamp(45px, 6.2vw, 82px);
-      font-weight: 620;
+      max-width: 900px;
+      margin: 18px 0 0;
+      font-size: clamp(45px, 6.1vw, 82px);
+      font-weight: 630;
       letter-spacing: -.067em;
-      line-height: .97;
+      line-height: .99;
     }
     h1 em { color: var(--accent); font-style: normal; }
-    .hero-copy { max-width: 670px; margin: 20px 0 0; color: var(--muted); font-size: 15px; line-height: 1.72; }
+    .hero-copy { max-width: 670px; margin: 20px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
     .hero-copy code {
       padding: 2px 6px;
       border: 1px solid var(--line);
       border-radius: 7px;
       background: var(--surface);
       color: var(--text-soft);
-      font: 11px/1.4 "SFMono-Regular", Menlo, monospace;
+      font-size: 12px;
     }
-    .hero-aside {
-      display: grid;
-      justify-items: end;
-      gap: 10px;
-      padding-bottom: 6px;
-      color: var(--dim);
-      text-align: right;
-    }
-    .hero-aside .live-line {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      color: var(--muted);
-      font: 600 10px/1.3 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .1em;
-    }
-    .live-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 5px var(--accent-soft);
-      animation: livePulse 2.3s ease-in-out infinite;
-    }
-    .hero-aside small { font-size: 11px; }
     .search-form {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
-      width: min(730px, 100%);
-      margin-top: 28px;
+      width: min(750px, 100%);
+      margin-top: 27px;
     }
-    .search-field {
-      position: relative;
-      display: flex;
-      align-items: center;
-      height: 58px;
-      border: 1px solid var(--line-strong);
-      border-radius: 999px;
-      background: var(--surface);
-      box-shadow: var(--shadow-soft);
-      transition: border-color 180ms, box-shadow 180ms, background 180ms;
-    }
-    .search-field:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 5px var(--accent-soft), var(--shadow-soft);
-    }
-    .search-field > svg {
-      position: absolute;
-      left: 20px;
-      width: 19px;
-      height: 19px;
-      color: var(--muted);
-      pointer-events: none;
-    }
-    .search-field input {
-      width: 100%;
-      height: 100%;
-      padding: 0 20px 0 52px;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      color: var(--ink);
-      font-size: 15px;
-    }
-    .search-field input::placeholder { color: var(--dim); }
-    .primary-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      min-height: 58px;
-      padding: 0 25px;
-      border: 0;
-      border-radius: 999px;
-      background: var(--accent);
-      color: var(--on-accent);
-      font-size: 13.5px;
-      font-weight: 720;
-      cursor: pointer;
-      box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 20%, transparent);
-      transition: transform 160ms var(--ease), background 180ms, opacity 180ms;
-    }
-    .primary-button:hover { transform: translateY(-1px); background: var(--accent-strong); }
-    .primary-button:active { transform: scale(.98); }
-    .primary-button:disabled { cursor: wait; opacity: .62; transform: none; }
-    .primary-button svg { width: 17px; height: 17px; }
+    .search-form sl-input { width: 100%; }
     .form-error { min-height: 18px; margin: 8px 0 0 18px; color: var(--danger); font-size: 12px; }
+    .feature-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 22px;
+      margin-top: 15px;
+      color: var(--dim);
+      font-size: 11.5px;
+    }
+    .feature-row span { display: inline-flex; align-items: center; gap: 7px; }
+    .feature-row span::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .hero-aside {
+      width: 285px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-aside .aside-kicker { color: var(--accent); font-size: 11px; font-weight: 720; }
+    .hero-aside h2 { margin: 9px 0 7px; font-size: 17px; letter-spacing: -.02em; }
+    .hero-aside p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .hero-aside .aside-line { height: 1px; margin: 16px 0; background: var(--line); }
+    .hero-aside .status-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--dim); font-size: 11px; }
+    .hero-aside .status-line strong { color: var(--text-soft); font-weight: 600; }
     .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(350px, .49fr);
+      grid-template-columns: minmax(0, 1fr) minmax(380px, .52fr);
       gap: 24px;
       align-items: start;
     }
@@ -444,73 +312,37 @@ export function renderStudioPage({
       padding: 0 12px;
       color: var(--muted);
     }
-    .preview-toolbar {
-      font: 500 9px/1 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .09em;
-    }
+    .preview-toolbar { font-size: 11px; font-weight: 600; }
     .preview-toolbar-left { display: inline-flex; align-items: center; gap: 10px; }
     .window-dots { display: inline-flex; gap: 5px; }
     .window-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
     .window-dots i:first-child { background: var(--accent); }
-    .preview-toolbar .dim { color: var(--dim); }
+    .preview-toolbar .dim { color: var(--dim); font-size: 10px; }
     .preview-viewport {
       position: relative;
       min-height: 430px;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 23px;
-      background:
-        radial-gradient(circle at 80% 7%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 26%),
-        #090a0d;
+      background: #090a0d;
     }
-    .preview-viewport img {
-      display: block;
-      width: 100%;
-      height: auto;
-      opacity: 1;
-      transform: none;
-    }
+    .preview-viewport img { display: block; width: 100%; height: auto; opacity: 1; }
     .preview-skeleton {
       position: absolute;
       inset: 0;
       z-index: 1;
       display: none;
       flex-direction: column;
-      gap: 15px;
+      gap: 16px;
       padding: 34px;
       background: #0a0b0e;
     }
     .preview-viewport.is-loading .preview-skeleton { display: flex; }
     .preview-viewport.is-ready .preview-skeleton { display: none; }
-    .preview-skeleton .bar {
-      height: 11px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.12), rgba(255,255,255,.05));
-      background-size: 200% 100%;
-      animation: shimmer 1.4s linear infinite;
-    }
-    .preview-skeleton .hero-block {
-      height: 145px;
-      margin-top: 18px;
-      border: 1px solid rgba(255,255,255,.05);
-      border-radius: 18px;
-      background: rgba(255,255,255,.035);
-    }
-    .preview-skeleton .w-42 { width: 42%; }
-    .preview-skeleton .w-68 { width: 68%; }
-    .preview-skeleton .w-84 { width: 84%; }
-    .preview-skeleton .grid {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 14px;
-      margin-top: auto;
-    }
-    .preview-skeleton .mini {
-      height: 112px;
-      border: 1px solid rgba(255,255,255,.05);
-      border-radius: 18px;
-      background: rgba(255,255,255,.03);
-    }
+    .preview-skeleton sl-skeleton { --border-radius: 999px; }
+    .preview-skeleton .hero-skeleton { height: 145px; margin-top: 18px; --border-radius: 18px; }
+    .preview-skeleton .grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: auto; }
+    .preview-skeleton .mini { height: 112px; --border-radius: 18px; }
     .preview-error {
       position: absolute;
       inset: 0;
@@ -527,23 +359,6 @@ export function renderStudioPage({
     .preview-footer { min-height: 48px; font-size: 11px; }
     .sync-state { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
     .sync-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-    .ghost-mini {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 34px;
-      padding: 0 11px;
-      border: 0;
-      border-radius: 999px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 11px;
-      cursor: pointer;
-      transition: background 180ms, color 180ms, transform 160ms var(--ease);
-    }
-    .ghost-mini:hover { background: var(--surface-2); color: var(--ink); }
-    .ghost-mini:active { transform: scale(.97); }
-    .ghost-mini svg { width: 15px; height: 15px; }
     .metrics-surface {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -553,38 +368,31 @@ export function renderStudioPage({
       background: var(--surface);
       box-shadow: var(--shadow-soft);
     }
-    .metric { min-width: 0; padding: 19px 20px; border-left: 1px solid var(--line); }
+    .metric { position: relative; min-width: 0; padding: 19px 20px; border-left: 1px solid var(--line); }
     .metric:first-child { border-left: 0; }
-    .metric-label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font: 500 8.5px/1.2 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .1em;
-    }
+    .metric-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 10.5px; font-weight: 600; }
     .metric-value {
       display: block;
       min-height: 34px;
       overflow: hidden;
       color: var(--ink);
       font-size: 27px;
-      font-weight: 680;
+      font-weight: 690;
       letter-spacing: -.045em;
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .metric-value.is-loading {
-      width: 2.5em;
-      height: 27px;
-      margin-top: 3px;
-      border-radius: 8px;
-      background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
-      background-size: 200% 100%;
-      animation: shimmer 1.4s linear infinite;
-      color: transparent;
+    .metric-value.is-loading { color: transparent; }
+    .metric-skeleton {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 21px;
+      display: none;
     }
+    .metric-value.is-loading + .metric-skeleton { display: block; }
     .editor-surface {
       overflow: hidden;
       border: 1px solid var(--line);
@@ -594,40 +402,12 @@ export function renderStudioPage({
     }
     .editor-head { padding: 20px 20px 0; }
     .editor-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-    .editor-title-row h2 { margin: 0; font-size: 16px; font-weight: 680; letter-spacing: -.018em; }
-    .editor-title-row p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; }
-    .micro-badge {
-      color: var(--dim);
-      font: 500 8px/1.4 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .1em;
-      white-space: nowrap;
-    }
-    .tabs {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 3px;
-      margin-top: 18px;
-      padding: 4px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--field);
-    }
-    .tab {
-      min-height: 36px;
-      border: 0;
-      border-radius: 10px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 11.5px;
-      font-weight: 650;
-      cursor: pointer;
-      transition: background 180ms, color 180ms, box-shadow 180ms;
-    }
-    .tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,.12); }
-    .editor-body { padding: 18px 20px 20px; }
-    .tab-panel { display: none; }
-    .tab-panel.is-active { display: block; }
+    .editor-title-row h2 { margin: 0; font-size: 17px; font-weight: 690; letter-spacing: -.02em; }
+    .editor-title-row p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .editor-tabs { margin-top: 16px; }
+    .editor-tabs::part(nav) { border-bottom: 1px solid var(--line); }
+    .editor-tabs::part(body) { padding: 18px 0; }
+    .editor-body { padding: 0 20px 20px; }
     .group-label {
       display: flex;
       align-items: center;
@@ -635,30 +415,26 @@ export function renderStudioPage({
       gap: 12px;
       margin: 0 0 10px;
       color: var(--muted);
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 11.5px;
+      font-weight: 650;
     }
-    .group-label:not(:first-child) { margin-top: 19px; }
-    .group-label small { color: var(--dim); font-size: 9.5px; font-weight: 500; }
+    .group-label:not(:first-child) { margin-top: 20px; }
+    .group-label small { color: var(--dim); font-size: 10px; font-weight: 500; }
     .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .theme-card {
-      display: grid;
-      grid-template-columns: 46px minmax(0, 1fr) 16px;
-      align-items: center;
-      gap: 10px;
-      min-height: 64px;
+    .theme-grid sl-button.theme-card { width: 100%; }
+    .theme-grid sl-button.theme-card::part(base) {
+      justify-content: flex-start;
+      width: 100%;
+      min-height: 65px;
       padding: 8px 9px;
       border: 1px solid var(--line);
-      border-radius: 15px;
+      border-radius: 16px;
       background: var(--field);
       color: var(--ink);
-      text-align: left;
-      cursor: pointer;
-      transition: transform 160ms var(--ease), border-color 180ms, background 180ms;
+      box-shadow: none;
     }
-    .theme-card:hover { transform: translateY(-1px); border-color: var(--line-strong); background: var(--surface-2); }
-    .theme-card:active { transform: scale(.985); }
-    .theme-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .theme-card::part(label) { display: grid; grid-template-columns: 46px minmax(0, 1fr) 16px; align-items: center; gap: 10px; width: 100%; }
+    .theme-card.is-active::part(base) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
     .theme-art {
       position: relative;
       display: block;
@@ -669,136 +445,47 @@ export function renderStudioPage({
       border-radius: 12px;
       background: linear-gradient(135deg, var(--swatch-a), color-mix(in srgb, var(--swatch-a) 70%, black));
     }
-    .theme-art-orb {
-      position: absolute;
-      right: 5px;
-      top: 6px;
-      width: 17px;
-      height: 17px;
-      border: 1px solid var(--swatch-c);
-      border-radius: 50%;
-      opacity: .8;
-    }
-    .theme-art-line {
-      position: absolute;
-      left: 7px;
-      bottom: 9px;
-      width: 27px;
-      height: 2px;
-      border-radius: 2px;
-      background: var(--swatch-b);
-    }
-    .theme-art-line::after {
-      content: "";
-      display: block;
-      width: 17px;
-      height: 2px;
-      margin-top: 4px;
-      border-radius: 2px;
-      background: var(--swatch-c);
-      opacity: .52;
-    }
-    .theme-name { display: grid; min-width: 0; gap: 2px; }
-    .theme-name strong { font-size: 11.5px; font-weight: 650; }
-    .theme-name small { overflow: hidden; color: var(--dim); font-size: 8.5px; text-overflow: ellipsis; white-space: nowrap; }
-    .theme-check { opacity: 0; color: var(--accent); font-size: 13px; font-weight: 800; transition: opacity 160ms; }
+    .theme-art-orb { position: absolute; right: 5px; top: 6px; width: 17px; height: 17px; border: 1px solid var(--swatch-c); border-radius: 50%; opacity: .8; }
+    .theme-art-line { position: absolute; left: 7px; bottom: 9px; width: 27px; height: 2px; border-radius: 2px; background: var(--swatch-b); }
+    .theme-art-line::after { content: ""; display: block; width: 17px; height: 2px; margin-top: 4px; border-radius: 2px; background: var(--swatch-c); opacity: .52; }
+    .theme-name { display: grid; min-width: 0; gap: 2px; text-align: left; }
+    .theme-name strong { font-size: 12px; font-weight: 650; }
+    .theme-name small { overflow: hidden; color: var(--dim); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .theme-check { display: grid; place-items: center; opacity: 0; color: var(--accent); transition: opacity 160ms; }
+    .theme-check svg { width: 15px; height: 15px; }
     .theme-card.is-active .theme-check { opacity: 1; }
-    .field { display: grid; gap: 6px; min-width: 0; }
-    .field + .field { margin-top: 11px; }
-    .field span { color: var(--muted); font-size: 10.5px; font-weight: 600; }
-    .input {
-      width: 100%;
-      min-height: 42px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      outline: 0;
-      background: var(--field);
-      color: var(--ink);
-      font-size: 12px;
-      transition: border-color 180ms, box-shadow 180ms, background 180ms;
-    }
-    textarea.input { min-height: 74px; padding: 10px 12px; resize: vertical; line-height: 1.55; }
-    .input::placeholder { color: var(--dim); }
-    .input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-soft); }
-    input[type="color"].swatch-input {
-      width: 46px;
-      height: 42px;
-      padding: 5px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--field);
-      cursor: pointer;
-    }
+    .field-stack { display: grid; gap: 15px; }
     .accent-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       padding: 9px;
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 16px;
       background: var(--field);
     }
-    .accent-row .accent-copy { flex: 1; min-width: 0; }
-    .accent-row strong { display: block; font-size: 10.5px; font-weight: 600; }
-    .accent-row code { color: var(--dim); font: 9px/1.5 "SFMono-Regular", Menlo, monospace; }
-    .text-button {
-      min-height: 30px;
-      padding: 0 9px;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 9.5px;
-      cursor: pointer;
-    }
-    .text-button:hover { background: var(--surface-2); color: var(--ink); }
+    .accent-copy { min-width: 0; }
+    .accent-copy strong { display: block; font-size: 12px; font-weight: 650; }
+    .accent-copy small { display: block; overflow: hidden; color: var(--dim); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
     .corner-map {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px 16px;
-      margin-top: 4px;
+      gap: 8px 16px;
       padding: 14px;
       border: 1px solid var(--line);
-      border-radius: 15px;
-      background:
-        linear-gradient(135deg, var(--accent-soft), transparent 55%),
-        var(--field);
+      border-radius: 17px;
+      background: linear-gradient(135deg, var(--accent-soft), transparent 55%), var(--field);
     }
-    .slider-field { display: grid; grid-template-columns: 39px minmax(0, 1fr) 34px; align-items: center; gap: 8px; }
-    .slider-field label { color: var(--muted); font-size: 9.5px; }
-    .slider-field output { color: var(--text-soft); font: 9px/1 "SFMono-Regular", Menlo, monospace; text-align: right; }
-    input[type="range"] { width: 100%; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .range-row { display: grid; grid-template-columns: minmax(0,1fr) 38px; align-items: center; gap: 8px; }
+    .range-row span { color: var(--text-soft); font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; }
     .reset-row { display: flex; justify-content: flex-end; margin-top: 12px; }
-    .outline-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      min-height: 36px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--surface-2);
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 160ms var(--ease), background 180ms, color 180ms;
-    }
-    .outline-button:hover { color: var(--ink); background: var(--surface-3); }
-    .outline-button:active { transform: scale(.98); }
-    .embed-surface {
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background: var(--surface);
-      box-shadow: var(--shadow-soft);
-    }
+    .embed-surface { border: 1px solid var(--line); border-radius: 24px; background: var(--surface); box-shadow: var(--shadow-soft); }
     .embed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
-    .embed-head h2 { margin: 0; font-size: 14px; font-weight: 680; }
+    .embed-head h2 { margin: 0; font-size: 15px; font-weight: 690; }
     .embed-body { padding: 14px 20px 20px; }
     .embed-code {
-      max-height: 152px;
+      max-height: 158px;
       overflow: auto;
       margin: 0 0 11px;
       padding: 14px;
@@ -806,29 +493,10 @@ export function renderStudioPage({
       border-radius: 15px;
       background: var(--field);
       color: var(--muted);
-      font: 9.5px/1.7 "SFMono-Regular", Menlo, Consolas, monospace;
+      font: 10px/1.7 "SFMono-Regular", Menlo, Consolas, monospace;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
-    .solid-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      min-height: 44px;
-      border: 0;
-      border-radius: 999px;
-      background: var(--accent);
-      color: var(--on-accent);
-      font-size: 11.5px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 160ms var(--ease), background 180ms;
-    }
-    .solid-button:hover { transform: translateY(-1px); background: var(--accent-strong); }
-    .solid-button:active { transform: scale(.98); }
-    .solid-button svg { width: 15px; height: 15px; }
     .api-strip {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -844,60 +512,27 @@ export function renderStudioPage({
     .api-strip .api-icon {
       display: grid;
       place-items: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
+      width: 38px;
+      height: 38px;
+      border-radius: 13px;
       background: var(--accent-soft);
       color: var(--accent);
-      font: 700 10px/1 "SFMono-Regular", Menlo, monospace;
+      font-size: 11px;
+      font-weight: 760;
     }
-    .api-strip strong { display: block; color: var(--ink); font-size: 11.5px; }
-    .api-strip code {
-      display: block;
-      overflow: hidden;
-      margin-top: 3px;
-      color: var(--dim);
-      font: 9.5px/1.4 "SFMono-Regular", Menlo, monospace;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .api-strip a {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--muted);
-      font-size: 10px;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .api-strip a:hover { color: var(--ink); }
-    .api-strip a svg { width: 13px; height: 13px; }
+    .api-strip strong { display: block; color: var(--ink); font-size: 12px; }
+    .api-strip code { display: block; overflow: hidden; margin-top: 3px; color: var(--dim); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
     .page-footer {
       display: flex;
-      align-items: center;
       justify-content: space-between;
       gap: 18px;
-      margin-top: 38px;
+      margin-top: 34px;
       padding-top: 18px;
       border-top: 1px solid var(--line);
       color: var(--dim);
-      font: 8.5px/1.5 "SFMono-Regular", Menlo, monospace;
-      letter-spacing: .07em;
+      font-size: 11px;
     }
-    .shortcuts { display: flex; flex-wrap: wrap; gap: 14px; }
-    .shortcuts span { display: inline-flex; gap: 5px; align-items: center; }
-    .shortcuts kbd {
-      display: inline-grid;
-      place-items: center;
-      min-width: 19px;
-      height: 19px;
-      padding: 0 4px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--muted);
-      font: 8px/1 "SFMono-Regular", Menlo, monospace;
-    }
+    .page-footer span:last-child { text-align: right; }
     .toast {
       position: fixed;
       top: 18px;
@@ -917,40 +552,68 @@ export function renderStudioPage({
       transition: opacity 200ms var(--ease), transform 200ms var(--ease);
     }
     .toast.visible { opacity: 1; transform: translate(-50%, 0); }
-    .spin {
-      width: 14px;
-      height: 14px;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
+    sl-button::part(base) {
+      min-height: 42px;
+      border-color: var(--line);
+      border-radius: 999px;
+      font-family: var(--font-sans);
+      font-weight: 650;
+      transition: transform 160ms var(--ease), background 180ms, border-color 180ms;
     }
+    sl-button[variant="primary"]::part(base) { border-color: transparent; background: var(--accent); color: var(--on-accent); }
+    sl-button[variant="primary"]:hover::part(base) { background: var(--accent-strong); }
+    sl-button[variant="default"]::part(base) { background: var(--surface); color: var(--ink); }
+    sl-button:active::part(base) { transform: scale(.98); }
+    sl-button > [slot="prefix"], sl-button > [slot="suffix"] { display: inline-flex; align-items: center; }
+    sl-button > [slot="prefix"] svg, sl-button > [slot="suffix"] svg { display: block; width: 17px; height: 17px; }
+    sl-input::part(base), sl-textarea::part(base), sl-select::part(combobox) {
+      border-color: var(--line);
+      border-radius: 14px;
+      background: var(--field);
+      color: var(--ink);
+      font-family: var(--font-sans);
+    }
+    sl-input::part(input), sl-textarea::part(textarea) { color: var(--ink); font-family: var(--font-sans); font-size: 13px; }
+    sl-input::part(input)::placeholder, sl-textarea::part(textarea)::placeholder { color: var(--dim); }
+    sl-input::part(label), sl-textarea::part(label) { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+    sl-input::part(help-text), sl-textarea::part(help-text) { color: var(--dim); font-size: 10.5px; }
+    sl-input[size="large"]::part(base) { min-height: 58px; border-radius: 999px; }
+    sl-tab-group::part(nav) { gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 15px; background: var(--field); }
+    sl-tab-group::part(body) { padding-top: 18px; }
+    sl-tab::part(base) { min-height: 36px; border-radius: 11px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    sl-tab[active]::part(base) { background: var(--surface); color: var(--ink); }
+    sl-tab-group::part(active-tab-indicator) { display: none; }
+    sl-color-picker::part(base) { border: 1px solid var(--line); border-radius: 13px; background: var(--field); }
+    sl-range { --track-color: var(--line-strong); --track-color-active: var(--accent); --thumb-color: var(--accent); }
+    sl-range::part(label) { color: var(--muted); font-size: 10.5px; font-weight: 600; }
+    sl-badge::part(base) { border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 600; }
+    .theme-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
+    #themeButton { width: 42px; height: 42px; }
+    #themeButton::part(base) { width: 42px; min-width: 42px; padding: 0; }
+    .theme-icon svg { width: 18px; height: 18px; }
+    .theme-icon .sun { display: none; }
+    html[data-theme="light"] .theme-icon .moon { display: none; }
+    html[data-theme="light"] .theme-icon .sun { display: block; }
+    sl-input > [slot="prefix"], sl-input > [slot="suffix"] { display: inline-flex; align-items: center; }
+    sl-input > [slot="prefix"] svg, sl-input > [slot="suffix"] svg { display: block; width: 17px; height: 17px; }
     @keyframes livePulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.72); opacity: .45; } }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (min-width: 1060px) { .editor-column { position: sticky; top: 96px; } }
+    @media (min-width: 1060px) { .editor-column { position: sticky; top: 94px; } }
     @media (max-width: 1059px) {
       .hero { grid-template-columns: 1fr; }
-      .hero-aside { justify-items: start; text-align: left; }
+      .hero-aside { width: min(100%, 560px); }
       .workspace { grid-template-columns: 1fr; }
       .preview-viewport { min-height: 0; }
     }
     @media (max-width: 680px) {
-      .topbar { min-height: 68px; padding-inline: 16px; }
-      .brand-copy span { display: none; }
-      .mode-pill { display: none; }
-      .repo-button { width: 42px; padding: 0; }
-      .repo-button span { display: none; }
-      .repo-icon { display: none; }
-      .admin-link { display: none; }
-      .shell { width: calc(100% - 32px); padding-top: 38px; }
-      .hero { gap: 22px; margin-bottom: 30px; }
-      h1 { font-size: clamp(40px, 12vw, 56px); }
+      .topbar { min-height: 66px; padding-inline: 16px; }
+      .brand-copy span, .compact-badge, .github-label { display: none; }
+      .github-link::part(base) { width: 42px; min-width: 42px; padding: 0; }
+      .shell { width: calc(100% - 32px); padding-top: 36px; }
+      h1 { font-size: clamp(32px, 9.8vw, 42px); }
       .hero-copy { font-size: 14px; }
       .hero-aside { display: none; }
       .search-form { grid-template-columns: 1fr; }
-      .primary-button { width: 100%; min-height: 52px; }
-      .search-field { height: 54px; }
+      .search-form sl-button::part(base) { width: 100%; min-height: 52px; }
       .workspace { gap: 16px; }
       .preview-shell { padding: 7px; border-radius: 26px; }
       .preview-toolbar { min-height: 38px; }
@@ -965,17 +628,13 @@ export function renderStudioPage({
       .theme-grid { grid-template-columns: 1fr; }
       .corner-map { grid-template-columns: 1fr; }
       .api-strip { grid-template-columns: auto minmax(0, 1fr); }
-      .api-strip a { grid-column: 2; }
+      .api-strip sl-button { grid-column: 2; justify-self: start; }
       .page-footer { flex-direction: column; align-items: flex-start; }
+      .page-footer span:last-child { text-align: left; }
     }
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: .01ms !important;
-      }
-      .primary-button:hover, .repo-button:hover, .solid-button:hover, .theme-card:hover { transform: none; }
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      sl-button:active::part(base) { transform: none; }
     }
   </style>
 </head>
@@ -983,42 +642,49 @@ export function renderStudioPage({
   <div class="app-mesh" aria-hidden="true"></div>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">PC</div>
+      <div class="brand-mark">卡</div>
       <div class="brand-copy">
-        <strong>Profile Card Studio</strong>
-        <span>One live card for your GitHub profile</span>
+        <strong>主页卡片</strong>
+        <span>实时生成 · 开源可自托管</span>
       </div>
+      <sl-badge class="compact-badge" pill>${modeLabel}</sl-badge>
     </div>
-    <span class="mode-pill${isPrivate ? " is-private" : ""}" title="${escapeHtml(modeDescription)}">
-      <i aria-hidden="true"></i>${escapeHtml(modeLabel)}
-    </span>
     <div class="top-actions">
-      <a class="icon-button repo-icon" href="${safeRepoUrl}" target="_blank" rel="noreferrer" aria-label="在 GitHub 查看开源项目">${ICONS.github}</a>
-      <a class="repo-button" href="${safeRepoUrl}" target="_blank" rel="noreferrer">${ICONS.github}<span>部署自己的卡片</span></a>
-      ${adminLink}
-      <button class="icon-button" id="themeButton" type="button" aria-label="切换页面主题">${ICONS.moon}${ICONS.sun}</button>
+      <sl-button class="github-link" href="${safeRepoUrl}" target="_blank" rel="noreferrer">
+        <span slot="prefix">${ICONS.github}</span>
+        <span class="github-label">GitHub 仓库</span>
+      </sl-button>
+      <sl-button id="themeButton" circle aria-label="切换页面主题">
+        <span class="theme-icon">${ICONS.moon}${ICONS.sun}</span>
+      </sl-button>
     </div>
   </header>
 
   <main class="shell">
     <section class="hero">
       <div>
-        <div class="eyebrow">OPEN SOURCE · DYNAMIC PROFILE CARD API</div>
-        <h1>把 GitHub 主页，<br>变成一张<em>会呼吸</em>的卡片。</h1>
-        <p class="hero-copy">输入用户名或主页链接，实时拉取 Stars、Rank、语言、贡献与热门项目。README 只需要一个 <code>&lt;img&gt;</code>，数据不会过期。</p>
-        <form class="search-form" id="profileForm" novalidate>
-          <label class="search-field">
-            ${ICONS.search}
-            <input id="usernameInput" name="username" type="text" value="${safeUsername}" placeholder="GitHub 用户名或 github.com 主页链接" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="formError">
-          </label>
-          <button class="primary-button" id="generateButton" type="submit">${ICONS.arrow}<span>生成卡片</span></button>
-          <p class="form-error" id="formError" role="alert"></p>
-        </form>
+        <span class="eyebrow"><i></i>开源 GitHub 主页卡片</span>
+        <h1>把 GitHub 主页，<br>变成一张<em>实时卡片</em>。</h1>
+        <p class="hero-copy">输入用户名或主页链接，Stars、等级、语言、贡献和热门仓库会自动更新。README 只需要一个 <code>&lt;img&gt;</code>，不用每天运行 Actions。</p>
+        <div class="search-form">
+          <sl-input id="usernameInput" size="large" pill clearable label="GitHub 用户名或主页链接" value="${safeUsername}" placeholder="例如 DearLicy 或 github.com/DearLicy">
+            <span slot="prefix">${ICONS.search}</span>
+          </sl-input>
+          <sl-button id="generateButton" variant="primary" size="large">
+            <span slot="prefix">${ICONS.arrow}</span>
+            <span>生成卡片</span>
+          </sl-button>
+        </div>
+        <p class="form-error" id="formError" role="alert"></p>
+        <div class="feature-row"><span>实时数据</span><span>5 分钟缓存</span><span>无需 GitHub Actions</span><span>失败自动降级</span></div>
       </div>
       <aside class="hero-aside">
-        <span class="live-line"><i class="live-dot" aria-hidden="true"></i><span id="liveLabel">LIVE DATA</span></span>
-        <small>实时 SVG · 5 分钟缓存 · GitHub 失败时自动降级</small>
-        <small>${escapeHtml(modeDescription)}</small>
+        <div class="aside-kicker">${modeLabel}</div>
+        <h2>一条链接，一张随时更新的名片。</h2>
+        <p>用户数据只在内存中短暂缓存，私有仓库不会进入统计，图片也不会保存到服务器。</p>
+        <div class="aside-line"></div>
+        <div class="status-line"><span>数据状态</span><strong id="asideStatus">等待同步</strong></div>
+        <div class="status-line"><span>访问范围</span><strong>${escapeHtml(modeDescription)}</strong></div>
       </aside>
     </section>
 
@@ -1026,31 +692,34 @@ export function renderStudioPage({
       <div class="preview-column">
         <article class="preview-shell" aria-labelledby="previewTitle">
           <div class="preview-toolbar">
-            <span class="preview-toolbar-left"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span id="previewTitle">LIVE PREVIEW</span></span>
+            <span class="preview-toolbar-left"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span id="previewTitle">实时预览</span></span>
             <span class="dim">920 × 1360 · SVG</span>
           </div>
           <div class="preview-viewport" id="previewViewport">
             <div class="preview-skeleton" aria-hidden="true">
-              <div class="bar w-42"></div>
-              <div class="hero-block"></div>
-              <div class="bar w-84"></div>
-              <div class="bar w-68"></div>
-              <div class="grid"><div class="mini"></div><div class="mini"></div></div>
+              <sl-skeleton effect="sheen" style="width:42%"></sl-skeleton>
+              <sl-skeleton class="hero-skeleton"></sl-skeleton>
+              <sl-skeleton effect="sheen" style="width:84%"></sl-skeleton>
+              <sl-skeleton effect="sheen" style="width:68%"></sl-skeleton>
+              <div class="grid"><sl-skeleton class="mini"></sl-skeleton><sl-skeleton class="mini"></sl-skeleton></div>
             </div>
-            <img id="cardPreview" alt="${safeUsername} 的动态 GitHub 卡片">
+            <img id="cardPreview" alt="${safeUsername} 的 GitHub 主页卡片">
             <div class="preview-error" id="previewError">卡片暂时没有加载成功，请稍后重试。</div>
           </div>
           <div class="preview-footer">
             <span class="sync-state"><i aria-hidden="true"></i><span id="syncLabel">准备同步 GitHub 数据…</span></span>
-            <button class="ghost-mini" id="refreshButton" type="button">${ICONS.refresh}<span>刷新</span></button>
+            <sl-button id="refreshButton" size="small">
+              <span slot="prefix">${ICONS.refresh}</span>
+              <span>刷新</span>
+            </sl-button>
           </div>
         </article>
 
         <div class="metrics-surface" aria-label="实时指标">
-          <div class="metric"><span class="metric-label">TOTAL STARS</span><strong class="metric-value is-loading" id="starValue"></strong></div>
-          <div class="metric"><span class="metric-label">RANK / SCORE</span><strong class="metric-value is-loading" id="rankValue"></strong></div>
-          <div class="metric"><span class="metric-label">LANGUAGES</span><strong class="metric-value is-loading" id="languageValue"></strong></div>
-          <div class="metric"><span class="metric-label">LAST SYNC</span><strong class="metric-value is-loading" id="timeValue"></strong></div>
+          <div class="metric"><span class="metric-label">获星总数</span><strong class="metric-value is-loading" id="starValue"></strong><span class="metric-skeleton"><sl-skeleton></sl-skeleton></span></div>
+          <div class="metric"><span class="metric-label">等级 / 评分</span><strong class="metric-value is-loading" id="rankValue"></strong><span class="metric-skeleton"><sl-skeleton></sl-skeleton></span></div>
+          <div class="metric"><span class="metric-label">语言数量</span><strong class="metric-value is-loading" id="languageValue"></strong><span class="metric-skeleton"><sl-skeleton></sl-skeleton></span></div>
+          <div class="metric"><span class="metric-label">同步时间</span><strong class="metric-value is-loading" id="timeValue"></strong><span class="metric-skeleton"><sl-skeleton></sl-skeleton></span></div>
         </div>
       </div>
 
@@ -1058,80 +727,106 @@ export function renderStudioPage({
         <section class="editor-surface" aria-labelledby="editorTitle">
           <div class="editor-head">
             <div class="editor-title-row">
-              <div><h2 id="editorTitle">设计你的卡片</h2><p>所有修改立即写入预览与 README 代码。</p></div>
-              <span class="micro-badge" id="configBadge">LIVE CONFIG</span>
+              <div><h2 id="editorTitle">设计你的卡片</h2><p>修改会立即写入预览与 README 代码。</p></div>
+              <sl-badge pill id="configBadge">午夜主题</sl-badge>
             </div>
-            <div class="tabs" role="tablist" aria-label="卡片编辑分类">
-              <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="panelStyle" id="tabStyle" data-tab="style">样式</button>
-              <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="panelCopy" id="tabCopy" data-tab="copy">文案</button>
-              <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="panelCanvas" id="tabCanvas" data-tab="canvas">背景</button>
-            </div>
-          </div>
-          <div class="editor-body">
-            <div class="tab-panel is-active" id="panelStyle" role="tabpanel" aria-labelledby="tabStyle">
-              <div class="group-label"><span>主题与头像构图</span><small>5 种视觉</small></div>
-              <div class="theme-grid" id="themeGrid">${themeCards(initialTheme)}</div>
-              <div class="group-label"><span>强调色</span><small>HEX</small></div>
-              <div class="accent-row">
-                <input class="swatch-input" id="accentInput" type="color" value="${escapeHtml(initial.accent || CARD_THEMES[initialTheme].colors.accent)}" aria-label="卡片强调色">
-                <div class="accent-copy"><strong>Accent</strong><code id="accentValue">${escapeHtml(initial.accent || "THEME DEFAULT")}</code></div>
-                <button class="text-button" id="resetAccent" type="button">默认</button>
-              </div>
-              ${field({ id: "avatarUrl", label: "自定义头像 URL", value: initial.avatarUrl, maxlength: 2048, placeholder: "https://…（留空使用 GitHub 头像）" })}
-            </div>
-
-            <div class="tab-panel" id="panelCopy" role="tabpanel" aria-labelledby="tabCopy" hidden>
-              ${field({ id: "markInput", label: "左上角标识", value: initial.mark, maxlength: 24, placeholder: "留空自动使用 GitHub 用户名" })}
-              ${field({ id: "badgeInput", label: "状态徽标", value: initial.badge, maxlength: 64, placeholder: "CURRENTLY BUILDING · PROJECT" })}
-              ${field({ id: "headlineOne", label: "标题第一行", value: initial.headlineOne, maxlength: 42, placeholder: "留空使用默认标题" })}
-              ${field({ id: "headlineTwo", label: "标题第二行", value: initial.headlineTwo, maxlength: 48, placeholder: "留空使用默认标题" })}
-              ${field({ id: "introInput", label: "简介", value: initial.intro, maxlength: 120, placeholder: "一句简短、清晰的自我介绍", textarea: true })}
-              ${field({ id: "footerNote", label: "页脚备注", value: initial.footerNote, maxlength: 64, placeholder: "BUILD WITH CARE." })}
-            </div>
-
-            <div class="tab-panel" id="panelCanvas" role="tabpanel" aria-labelledby="tabCanvas" hidden>
-              ${field({ id: "backgroundUrl", label: "背景图片 URL", value: initial.backgroundUrl, maxlength: 2048, placeholder: "https://images.unsplash.com/…" })}
-              <div class="group-label"><span>四角透明度</span><small>左上 / 右上 / 右下 / 左下</small></div>
-              <div class="corner-map">
-                <div class="slider-field"><label for="bgTL">左上</label><input id="bgTL" type="range" min="0" max="100" step="1"><output id="bgTLValue"></output></div>
-                <div class="slider-field"><label for="bgTR">右上</label><input id="bgTR" type="range" min="0" max="100" step="1"><output id="bgTRValue"></output></div>
-                <div class="slider-field"><label for="bgBR">右下</label><input id="bgBR" type="range" min="0" max="100" step="1"><output id="bgBRValue"></output></div>
-                <div class="slider-field"><label for="bgBL">左下</label><input id="bgBL" type="range" min="0" max="100" step="1"><output id="bgBLValue"></output></div>
-              </div>
-              <div class="reset-row"><button class="outline-button" id="resetBackground" type="button">恢复默认透明度</button></div>
-            </div>
+            <sl-tab-group class="editor-tabs" id="editorTabs">
+              <sl-tab slot="nav" panel="style" active>外观</sl-tab>
+              <sl-tab slot="nav" panel="copy">文案</sl-tab>
+              <sl-tab slot="nav" panel="canvas">背景</sl-tab>
+              <sl-tab-panel name="style">
+                <div class="editor-body">
+                  <div class="group-label"><span>主题与头像构图</span><small>5 种预设</small></div>
+                  <div class="theme-grid" id="themeGrid">${themeCards(initialTheme)}</div>
+                  <div class="group-label"><span>强调色</span><small>跟随主题或自定义</small></div>
+                  <div class="accent-row">
+                    <sl-color-picker id="accentInput" label="卡片强调色" format="hex" value="${escapeHtml(initial.accent || CARD_THEMES[initialTheme].colors.accent)}" size="small"></sl-color-picker>
+                    <div class="accent-copy"><strong>卡片强调色</strong><small id="accentValue">${escapeHtml(initial.accent || "跟随主题")}</small></div>
+                    <sl-button id="resetAccent" size="small">恢复默认</sl-button>
+                  </div>
+                  <div class="field-stack" style="margin-top:15px">
+                    ${field({ id: "avatarUrl", label: "自定义头像 URL", value: initial.avatarUrl, maxlength: 2048, placeholder: "https://…（留空使用 GitHub 头像）" })}
+                  </div>
+                </div>
+              </sl-tab-panel>
+              <sl-tab-panel name="copy">
+                <div class="editor-body">
+                  <div class="field-stack">
+                    ${field({ id: "markInput", label: "左上角标识", value: initial.mark, maxlength: 24, placeholder: "留空自动使用 GitHub 用户名" })}
+                    ${field({ id: "badgeInput", label: "状态徽标", value: initial.badge, maxlength: 64, placeholder: "例如：正在开发 · ZIBLL_CHILD" })}
+                    ${field({ id: "headlineOne", label: "标题第一行", value: initial.headlineOne, maxlength: 42, placeholder: "留空使用默认标题" })}
+                    ${field({ id: "headlineTwo", label: "标题第二行", value: initial.headlineTwo, maxlength: 48, placeholder: "留空使用默认标题" })}
+                    ${field({ id: "introInput", label: "简介", value: initial.intro, maxlength: 120, placeholder: "一句简短、清晰的自我介绍", textarea: true })}
+                    ${field({ id: "footerNote", label: "页脚备注", value: initial.footerNote, maxlength: 64, placeholder: "例如：保持好奇，持续交付。" })}
+                  </div>
+                </div>
+              </sl-tab-panel>
+              <sl-tab-panel name="canvas">
+                <div class="editor-body">
+                  ${field({ id: "backgroundUrl", label: "背景图片 URL", value: initial.backgroundUrl, maxlength: 2048, placeholder: "https://images.unsplash.com/…" })}
+                  <div class="group-label"><span>四角透明度</span><small>每张图片都可以单独调整</small></div>
+                  <div class="corner-map">
+                    <div class="range-row"><sl-range id="bgTL" label="左上" min="0" max="100" step="1"></sl-range><span id="bgTLValue"></span></div>
+                    <div class="range-row"><sl-range id="bgTR" label="右上" min="0" max="100" step="1"></sl-range><span id="bgTRValue"></span></div>
+                    <div class="range-row"><sl-range id="bgBR" label="右下" min="0" max="100" step="1"></sl-range><span id="bgBRValue"></span></div>
+                    <div class="range-row"><sl-range id="bgBL" label="左下" min="0" max="100" step="1"></sl-range><span id="bgBLValue"></span></div>
+                  </div>
+                  <div class="reset-row"><sl-button id="resetBackground" size="small">恢复默认透明度</sl-button></div>
+                </div>
+              </sl-tab-panel>
+            </sl-tab-group>
           </div>
         </section>
 
         <section class="embed-surface" aria-labelledby="embedTitle">
-          <div class="embed-head"><h2 id="embedTitle">README 嵌入</h2><span class="micro-badge">ONE IMAGE</span></div>
+          <div class="embed-head"><h2 id="embedTitle">嵌入 README</h2><sl-badge pill>一张图片</sl-badge></div>
           <div class="embed-body">
             <pre class="embed-code" id="embedCode"></pre>
-            <button class="solid-button" id="copyButton" type="button">${ICONS.copy}<span>复制 README 代码</span></button>
+            <sl-button id="copyButton" variant="primary" style="width:100%">
+              <span slot="prefix">${ICONS.copy}</span>
+              <span>复制嵌入代码</span>
+            </sl-button>
           </div>
         </section>
       </aside>
     </section>
 
     <div class="api-strip">
-      <span class="api-icon">API</span>
-      <div><strong>同一套参数也可直接调用 SVG 接口</strong><code id="endpointValue">${safeOrigin}/api?username=${encodeURIComponent(defaultUsername)}</code></div>
-      <a id="openSvg" href="${safeOrigin}/api?username=${encodeURIComponent(defaultUsername)}" target="_blank" rel="noreferrer">打开 SVG ${ICONS.external}</a>
+      <span class="api-icon">SVG</span>
+      <div><strong>同一套参数也可以直接调用卡片接口</strong><code id="endpointValue">${safeOrigin}/api?username=${encodeURIComponent(defaultUsername)}</code></div>
+      <sl-button id="openSvg" href="${safeOrigin}/api?username=${encodeURIComponent(defaultUsername)}" target="_blank" rel="noreferrer" size="small">
+        <span>打开卡片</span>
+        <span slot="suffix">${ICONS.external}</span>
+      </sl-button>
     </div>
 
     <footer class="page-footer">
-      <div class="shortcuts"><span><kbd>/</kbd> 搜索</span><span><kbd>R</kbd> 刷新</span><span><kbd>C</kbd> 复制</span><span><kbd>T</kbd> 主题</span></div>
-      <span>OPEN SOURCE · PUBLIC BY DEFAULT · BUILT FOR README</span>
+      <span>数据来自 GitHub 公开接口 · 5 分钟缓存 · 24 小时降级快照</span>
+      <span>开源项目 · 可自由部署 · MIT License</span>
     </footer>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
-  <script>
+  <script type="module">
+    ${SHOELACE_IMPORTS}
+
+    function syncComponentTheme() {
+      const light = document.documentElement.dataset.theme === "light";
+      const darkLink = document.getElementById("slThemeDark");
+      const lightLink = document.getElementById("slThemeLight");
+      if (darkLink) darkLink.disabled = light;
+      if (lightLink) lightLink.disabled = !light;
+    }
+    syncComponentTheme();
+
     const initialUsername = ${json(defaultUsername)};
     const origin = ${json(baseOrigin)};
     const repoUrl = ${json(repoUrl)};
     const initialConfig = ${json(initial)};
-    const themes = ${json(Object.fromEntries(Object.entries(CARD_THEMES).map(([key, theme]) => [key, { label: theme.label, colors: theme.colors }])))};
+    const themes = ${json(Object.fromEntries(Object.entries(CARD_THEMES).map(([key, theme]) => [key, {
+      label: theme.labelZh || theme.label,
+      colors: theme.colors,
+    }])))};
     const defaultCorners = ${json(DEFAULT_CARD_CONFIG.backgroundCorners)};
     const refreshIcon = ${json(ICONS.refresh)};
     const state = {
@@ -1145,7 +840,6 @@ export function renderStudioPage({
       previewTimer: null,
     };
     const elements = {
-      form: document.getElementById("profileForm"),
       input: document.getElementById("usernameInput"),
       formError: document.getElementById("formError"),
       generate: document.getElementById("generateButton"),
@@ -1153,7 +847,7 @@ export function renderStudioPage({
       viewport: document.getElementById("previewViewport"),
       previewError: document.getElementById("previewError"),
       sync: document.getElementById("syncLabel"),
-      liveLabel: document.getElementById("liveLabel"),
+      asideStatus: document.getElementById("asideStatus"),
       refresh: document.getElementById("refreshButton"),
       star: document.getElementById("starValue"),
       rank: document.getElementById("rankValue"),
@@ -1207,7 +901,6 @@ export function renderStudioPage({
     function setMetricSkeleton(enabled) {
       [elements.star, elements.rank, elements.languages, elements.time].forEach((node) => {
         node.classList.toggle("is-loading", enabled);
-        if (!enabled) node.style.width = "";
       });
     }
     function beginSkeleton() {
@@ -1297,7 +990,7 @@ export function renderStudioPage({
     }
     function readmeSnippet() {
       const studio = origin + "/?username=" + encodeURIComponent(state.username) + "&" + configQuery();
-      return '<p align="center">\\n  <a href="' + studio + '">\\n    <img width="100%" src="' + cardEndpoint(state.username) + '" alt="' + state.username + ' — dynamic GitHub profile">\\n  </a>\\n</p>';
+      return '<p align="center">\\n  <a href="' + studio + '">\\n    <img width="100%" src="' + cardEndpoint(state.username) + '" alt="' + state.username + ' 的 GitHub 主页卡片">\\n  </a>\\n</p>';
     }
     function hexToRgb(hex) {
       const match = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex || "");
@@ -1325,12 +1018,13 @@ export function renderStudioPage({
       const input = document.getElementById("bg" + key.toUpperCase());
       const output = document.getElementById("bg" + key.toUpperCase() + "Value");
       const percent = Math.round(Number(value) * 100);
-      input.value = String(percent);
+      input.value = percent;
       output.textContent = percent + "%";
     }
     function hydrateControls() {
-      elements.accent.value = state.config.accent || themes[state.config.theme].colors.accent;
-      elements.accentValue.textContent = state.config.accent || "THEME DEFAULT";
+      const theme = themes[state.config.theme] || themes.midnight;
+      elements.accent.value = state.config.accent || theme.colors.accent;
+      elements.accentValue.textContent = state.config.accent || "跟随主题";
       elements.avatarUrl.value = state.config.avatarUrl || "";
       elements.mark.value = state.config.mark || "";
       elements.badge.value = state.config.badge || "";
@@ -1345,10 +1039,10 @@ export function renderStudioPage({
     }
     function refreshOutputs() {
       const url = cardEndpoint(state.username, { cacheBust: true });
-      elements.openSvg.href = cardEndpoint(state.username);
+      elements.openSvg.setAttribute("href", cardEndpoint(state.username));
       elements.endpoint.textContent = origin + "/api?" + configQuery() + "&username=" + encodeURIComponent(state.username);
       elements.embed.textContent = readmeSnippet();
-      elements.configBadge.textContent = state.config.theme.toUpperCase() + " / LIVE";
+      elements.configBadge.textContent = themes[state.config.theme]?.label || "自定义主题";
       return url;
     }
     function schedulePreview() {
@@ -1363,7 +1057,7 @@ export function renderStudioPage({
     function readControls() {
       const next = cleanConfig();
       next.theme = state.config.theme;
-      next.accent = elements.accent.value.toUpperCase();
+      next.accent = String(elements.accent.value || "").toUpperCase();
       next.avatarUrl = elements.avatarUrl.value.trim();
       next.mark = elements.mark.value;
       next.badge = elements.badge.value;
@@ -1376,11 +1070,11 @@ export function renderStudioPage({
         next.backgroundCorners[key] = Number(document.getElementById("bg" + key.toUpperCase()).value) / 100;
       });
       state.config = next;
-      elements.accentValue.textContent = next.accent || "THEME DEFAULT";
+      elements.accentValue.textContent = next.accent || "跟随主题";
       applyAccent(next.theme, next.accent);
     }
     function cacheKey(username) {
-      return "profile-card-summary:v3:" + username.toLowerCase();
+      return "profile-card-summary:v4:" + username.toLowerCase();
     }
     function readCachedSummary(username) {
       try {
@@ -1399,12 +1093,12 @@ export function renderStudioPage({
       ];
       values.forEach(([node, text]) => { node.textContent = text; node.classList.remove("is-loading"); });
       elements.sync.textContent = cached ? "缓存数据 · 正在后台更新" : "刚刚同步 GitHub 数据";
-      elements.liveLabel.textContent = cached ? "CACHED DATA" : "LIVE DATA";
+      elements.asideStatus.textContent = cached ? "缓存已显示" : "数据已更新";
     }
     function updateIdentity(username) {
       state.username = username;
       elements.input.value = username;
-      elements.preview.alt = username + " 的动态 GitHub 卡片";
+      elements.preview.alt = username + " 的 GitHub 主页卡片";
       try {
         const url = new URL(location.href);
         url.searchParams.set("username", username);
@@ -1418,9 +1112,8 @@ export function renderStudioPage({
       state.controller = controller;
       state.loading = true;
       elements.generate.disabled = true;
-      elements.generate.querySelector("span").textContent = "获取中…";
+      elements.generate.loading = true;
       elements.refresh.disabled = true;
-      elements.refresh.innerHTML = '<span class="spin" aria-hidden="true"></span><span>同步中</span>';
       setMetricSkeleton(!state.summary);
       try {
         const response = await fetch(summaryEndpoint(username, { refresh }), { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
@@ -1444,7 +1137,7 @@ export function renderStudioPage({
         if (controller.signal.aborted || requestId !== state.requestId) return;
         const message = error instanceof Error ? error.message : "同步失败，请稍后重试。";
         elements.sync.textContent = message;
-        elements.liveLabel.textContent = "DEGRADED";
+        elements.asideStatus.textContent = "数据暂时不可用";
         setError(message);
         if (!state.summary) {
           [elements.star, elements.rank, elements.languages, elements.time].forEach((node) => {
@@ -1459,30 +1152,29 @@ export function renderStudioPage({
           state.loading = false;
           state.controller = null;
           elements.generate.disabled = false;
-          elements.generate.querySelector("span").textContent = "生成卡片";
+          elements.generate.loading = false;
           elements.refresh.disabled = false;
-          elements.refresh.innerHTML = refreshIcon + "<span>刷新</span>";
         }
       }
     }
     async function copyText(text, label) {
+      if (!navigator.clipboard?.writeText) {
+        showToast("当前浏览器不支持自动复制，请手动选择代码。");
+        return false;
+      }
       try {
         await navigator.clipboard.writeText(text);
+        showToast(label);
+        return true;
       } catch {
-        const area = document.createElement("textarea");
-        area.value = text;
-        area.setAttribute("readonly", "");
-        area.style.cssText = "position:fixed;opacity:0";
-        document.body.appendChild(area);
-        area.select();
-        document.execCommand("copy");
-        area.remove();
+        showToast("复制失败，请检查浏览器剪贴板权限。");
+        return false;
       }
-      showToast(label);
     }
     function toggleTheme() {
       state.theme = state.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = state.theme;
+      syncComponentTheme();
       try { localStorage.setItem("profile-card-theme", state.theme); } catch {}
       showToast(state.theme === "dark" ? "页面已切换到深色" : "页面已切换到浅色");
     }
@@ -1494,11 +1186,7 @@ export function renderStudioPage({
       showPreviewError("卡片加载失败，请稍后重试。");
       elements.sync.textContent = "卡片加载失败";
     }
-
-    elements.preview.addEventListener("load", markPreviewReady);
-    elements.preview.addEventListener("error", markPreviewError);
-    elements.form.addEventListener("submit", (event) => {
-      event.preventDefault();
+    function submitSearch() {
       const username = normalizeClientInput(elements.input.value);
       if (!username) {
         setError("请输入有效的 GitHub 用户名或主页链接。");
@@ -1513,13 +1201,27 @@ export function renderStudioPage({
       elements.viewport.classList.add("is-loading");
       elements.sync.textContent = "正在获取 GitHub 数据…";
       loadSummary({ username, setCard: true });
+    }
+    function isEditing() {
+      const tag = document.activeElement?.tagName || "";
+      return ["SL-INPUT", "SL-TEXTAREA", "SL-SELECT", "SL-COLOR-PICKER"].includes(tag);
+    }
+
+    elements.preview.addEventListener("load", markPreviewReady);
+    elements.preview.addEventListener("error", markPreviewError);
+    elements.generate.addEventListener("click", submitSearch);
+    elements.input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitSearch();
     });
     elements.refresh.addEventListener("click", () => loadSummary({ refresh: true }));
     elements.copy.addEventListener("click", async () => {
-      await copyText(readmeSnippet(), "README 代码已复制");
+      const copied = await copyText(readmeSnippet(), "README 代码已复制");
+      if (!copied) return;
       clearTimeout(copyResetTimer);
-      elements.copy.querySelector("span").textContent = "已复制";
-      copyResetTimer = setTimeout(() => { elements.copy.querySelector("span").textContent = "复制 README 代码"; }, 1400);
+      elements.copy.textContent = "已复制";
+      copyResetTimer = setTimeout(() => {
+        elements.copy.innerHTML = '<span slot="prefix">' + ${json(ICONS.copy)} + '</span><span>复制嵌入代码</span>';
+      }, 1400);
     });
     elements.themeButton.addEventListener("click", toggleTheme);
     elements.themeGrid.addEventListener("click", (event) => {
@@ -1531,9 +1233,9 @@ export function renderStudioPage({
       refreshOutputs();
       schedulePreview();
     });
-    elements.accent.addEventListener("input", () => {
-      state.config.accent = elements.accent.value.toUpperCase();
-      elements.accentValue.textContent = state.config.accent;
+    elements.accent.addEventListener("sl-change", () => {
+      state.config.accent = String(elements.accent.value || "").toUpperCase();
+      elements.accentValue.textContent = state.config.accent || "跟随主题";
       applyAccent(state.config.theme, state.config.accent);
       refreshOutputs();
       schedulePreview();
@@ -1545,7 +1247,7 @@ export function renderStudioPage({
       schedulePreview();
     });
     [elements.avatarUrl, elements.mark, elements.badge, elements.headlineOne, elements.headlineTwo, elements.intro, elements.footerNote, elements.backgroundUrl].forEach((input) => {
-      input.addEventListener("input", () => {
+      input.addEventListener("sl-input", () => {
         readControls();
         refreshOutputs();
         schedulePreview();
@@ -1553,7 +1255,7 @@ export function renderStudioPage({
     });
     corners.forEach((key) => {
       const slider = document.getElementById("bg" + key.toUpperCase());
-      slider.addEventListener("input", () => {
+      slider.addEventListener("sl-input", () => {
         document.getElementById("bg" + key.toUpperCase() + "Value").textContent = slider.value + "%";
         state.config.backgroundCorners[key] = Number(slider.value) / 100;
         refreshOutputs();
@@ -1567,52 +1269,37 @@ export function renderStudioPage({
       schedulePreview();
       showToast("已恢复默认四角透明度");
     });
-    document.querySelectorAll("[data-tab]").forEach((button) => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll("[data-tab]").forEach((tab) => {
-          const active = tab === button;
-          tab.setAttribute("aria-selected", active ? "true" : "false");
-          const panel = document.getElementById(tab.dataset.tab === "style" ? "panelStyle" : tab.dataset.tab === "copy" ? "panelCopy" : "panelCanvas");
-          panel.hidden = !active;
-          panel.classList.toggle("is-active", active);
-        });
-      });
-    });
     document.addEventListener("keydown", (event) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || isEditing()) return;
       if (event.key.toLowerCase() === "r") elements.refresh.click();
       if (event.key.toLowerCase() === "c") elements.copy.click();
       if (event.key.toLowerCase() === "t") elements.themeButton.click();
       if (event.key === "/") {
         event.preventDefault();
         elements.input.focus();
-        elements.input.select();
       }
     });
 
-    (() => {
-      hydrateControls();
-      const cached = readCachedSummary(initialUsername);
-      if (cached) {
-        applySummary(cached, { cached: true });
-        beginSkeleton();
-        elements.preview.src = refreshOutputs();
-        setTimeout(() => loadSummary({ username: initialUsername }), 220);
-      } else {
-        setMetricSkeleton(true);
-        beginSkeleton();
-        elements.viewport.classList.add("is-loading");
-        elements.preview.src = refreshOutputs();
-        loadSummary({ username: initialUsername });
+    hydrateControls();
+    const cached = readCachedSummary(initialUsername);
+    if (cached) {
+      applySummary(cached, { cached: true });
+      beginSkeleton();
+      elements.preview.src = refreshOutputs();
+      setTimeout(() => loadSummary({ username: initialUsername }), 220);
+    } else {
+      setMetricSkeleton(true);
+      beginSkeleton();
+      elements.viewport.classList.add("is-loading");
+      elements.preview.src = refreshOutputs();
+      loadSummary({ username: initialUsername });
+    }
+    requestAnimationFrame(() => {
+      if (elements.preview.complete) {
+        if (elements.preview.naturalWidth > 0) markPreviewReady();
+        else markPreviewError();
       }
-      requestAnimationFrame(() => {
-        if (elements.preview.complete) {
-          if (elements.preview.naturalWidth > 0) markPreviewReady();
-          else markPreviewError();
-        }
-      });
-    })();
+    });
   </script>
 </body>
 </html>`;

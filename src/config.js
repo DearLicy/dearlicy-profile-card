@@ -1,7 +1,9 @@
 export const CARD_THEMES = {
   midnight: {
     label: "Midnight",
+    labelZh: "午夜",
     note: "Dark · orbital",
+    noteZh: "深色 · 轨道",
     layout: "orbit",
     dark: true,
     swatches: ["#0B0C10", "#CBB9FF", "#F7F3ED"],
@@ -26,7 +28,9 @@ export const CARD_THEMES = {
   },
   ivory: {
     label: "Ivory",
+    labelZh: "象牙",
     note: "Light · editorial",
+    noteZh: "浅色 · 画框",
     layout: "frame",
     dark: false,
     swatches: ["#F3EEE5", "#6650D8", "#1A1720"],
@@ -51,7 +55,9 @@ export const CARD_THEMES = {
   },
   ocean: {
     label: "Ocean",
+    labelZh: "深海",
     note: "Deep teal · terminal",
+    noteZh: "青绿 · 终端",
     layout: "terminal",
     dark: true,
     swatches: ["#071116", "#65D6C4", "#ECF9F7"],
@@ -76,7 +82,9 @@ export const CARD_THEMES = {
   },
   ember: {
     label: "Ember",
+    labelZh: "余烬",
     note: "Warm dark · framed",
+    noteZh: "暖色 · 边框",
     layout: "frame",
     dark: true,
     swatches: ["#130D0C", "#FFB07C", "#FFF4EE"],
@@ -101,7 +109,9 @@ export const CARD_THEMES = {
   },
   graphite: {
     label: "Graphite",
+    labelZh: "石墨",
     note: "Neutral · minimal",
+    noteZh: "中性 · 极简",
     layout: "minimal",
     dark: true,
     swatches: ["#151618", "#E7E2D8", "#F6F5F2"],

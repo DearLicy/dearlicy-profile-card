@@ -1,10 +1,10 @@
 import { clearAssetCache } from "./assets.js";
-import { renderAdminLoginPage, renderAdminDashboardPage } from "./admin-page.js";
-import { normalizeSiteConfig, publicSiteConfig } from "./site-config.js";
+import { renderAdminDashboardPage, renderAdminLoginPage } from "./admin-page.js";
+import { fetchProfileData } from "./github.js";
 import { clearProfileCache } from "./profile-service.js";
+import { normalizeSiteConfig, publicSiteConfig } from "./site-config.js";
 
 const SESSION_COOKIE = "pcard_admin";
-const OAUTH_STATE_COOKIE = "pcard_oauth_state";
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const JSON_LIMIT = 64 * 1024;
 const attempts = new Map();
@@ -20,12 +20,11 @@ function base64url(bytes) {
 }
 
 function fromBase64url(value) {
-  const padded = String(value).replaceAll("-", "+").replaceAll("_", "/").padEnd(
-    Math.ceil(String(value).length / 4) * 4,
-    "=",
-  );
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  const padded = String(value)
+    .replaceAll("-", "+")
+    .replaceAll("_", "/")
+    .padEnd(Math.ceil(String(value).length / 4) * 4, "=");
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
 }
 
 async function hmac(secret, value) {
@@ -80,9 +79,7 @@ function isSecureRequest(request) {
     .split(",")[0]
     .trim()
     .toLowerCase();
-  return (
-    forwarded === "https" || new URL(request.url).protocol === "https:"
-  );
+  return forwarded === "https" || new URL(request.url).protocol === "https:";
 }
 
 function cookie(
@@ -103,8 +100,7 @@ function cookie(
 }
 
 async function createSession(secret) {
-  const payload = `admin.${Date.now()}`;
-  return signedValue(secret, payload);
+  return signedValue(secret, `admin.${Date.now()}`);
 }
 
 async function hasSession(request, secret) {
@@ -161,15 +157,11 @@ function registerFailure(address) {
   }
 }
 
-function clearFailures(address) {
-  attempts.delete(address);
-}
-
-function adminHeaders(request, extra = {}) {
+function adminHeaders(extra = {}) {
   return new Headers({
     "Cache-Control": "no-store",
     "Content-Security-Policy":
-      "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' data:; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -179,22 +171,22 @@ function adminHeaders(request, extra = {}) {
 }
 
 function jsonResponse(request, status, payload, extraHeaders = {}) {
-  return new Response(request.method === "HEAD" ? null : JSON.stringify(payload), {
-    status,
-    headers: adminHeaders(request, {
-      "Content-Type": "application/json; charset=utf-8",
-      ...extraHeaders,
-    }),
-  });
+  return new Response(
+    request.method === "HEAD" ? null : JSON.stringify(payload),
+    {
+      status,
+      headers: adminHeaders({
+        "Content-Type": "application/json; charset=utf-8",
+        ...extraHeaders,
+      }),
+    },
+  );
 }
 
-function htmlResponse(request, status, html, extraHeaders = {}) {
+function htmlResponse(request, status, html) {
   return new Response(request.method === "HEAD" ? null : html, {
     status,
-    headers: adminHeaders(request, {
-      "Content-Type": "text/html; charset=utf-8",
-      ...extraHeaders,
-    }),
+    headers: adminHeaders({ "Content-Type": "text/html; charset=utf-8" }),
   });
 }
 
@@ -205,14 +197,7 @@ async function readJson(request) {
     error.status = 413;
     throw error;
   }
-  let text = "";
-  try {
-    text = await request.text();
-  } catch {
-    const error = new Error("无法读取请求内容。");
-    error.status = 400;
-    throw error;
-  }
+  const text = await request.text();
   if (text.length > JSON_LIMIT) {
     const error = new Error("请求体过大。");
     error.status = 413;
@@ -229,9 +214,9 @@ async function readJson(request) {
 
 function externalOrigin(request) {
   const url = new URL(request.url);
-  const host = String(request.headers.get("X-Forwarded-Host") || url.host).split(
-    ",",
-  )[0].trim();
+  const host = String(request.headers.get("X-Forwarded-Host") || url.host)
+    .split(",")[0]
+    .trim();
   const proto = String(
     request.headers.get("X-Forwarded-Proto") || url.protocol.replace(":", ""),
   )
@@ -242,8 +227,7 @@ function externalOrigin(request) {
 
 function sameOrigin(request) {
   const origin = request.headers.get("Origin");
-  if (!origin) return true;
-  return origin === externalOrigin(request);
+  return !origin || origin === externalOrigin(request);
 }
 
 function adminSecret(env) {
@@ -259,15 +243,18 @@ function tokenLooksValid(value) {
   );
 }
 
-function secretStatus(env, store, secrets) {
-  let source = "";
-  if (secrets?.oauthToken) source = "oauth";
-  else if (secrets?.githubToken) source = "token";
-  else if (env.GITHUB_TOKEN) source = "environment";
+function githubStatus(env, secrets) {
+  const source = secrets?.githubToken
+    ? "stored"
+    : env.GITHUB_TOKEN_FROM_ENV
+      ? "environment"
+      : "";
   return {
-    configured: Boolean(secrets?.oauthToken || secrets?.githubToken || env.GITHUB_TOKEN),
+    configured: Boolean(
+      secrets?.githubToken || env.GITHUB_TOKEN_FROM_ENV,
+    ),
     source,
-    oauthConnected: Boolean(secrets?.oauthToken),
+    hasStoredToken: Boolean(secrets?.githubToken),
   };
 }
 
@@ -277,18 +264,12 @@ async function dashboardPayload(env, store, site) {
     : [{}, {}];
   return {
     site: publicSiteConfig(site),
-    github: secretStatus(env, store, secrets),
-    admin: {
-      oauthClientConfigured: Boolean(
-        (site.oauthClientId || env.GITHUB_CLIENT_ID) &&
-          (secrets.oauthClientSecret || env.GITHUB_CLIENT_SECRET),
-      ),
-      store: storeStatus,
-    },
+    github: githubStatus(env, secrets),
+    admin: { store: storeStatus },
   };
 }
 
-async function handleLogin(request, env, store) {
+async function handleLogin(request, env) {
   if (!sameOrigin(request)) {
     return jsonResponse(request, 403, { error: "ORIGIN_REJECTED" });
   }
@@ -297,7 +278,10 @@ async function handleLogin(request, env, store) {
     return jsonResponse(
       request,
       429,
-      { error: "TOO_MANY_ATTEMPTS", message: "尝试次数过多，请 15 分钟后再试。" },
+      {
+        error: "TOO_MANY_ATTEMPTS",
+        message: "尝试次数过多，请 15 分钟后再试。",
+      },
       { "Retry-After": "900" },
     );
   }
@@ -309,7 +293,7 @@ async function handleLogin(request, env, store) {
       message: "管理员密钥不正确。",
     });
   }
-  clearFailures(address);
+  attempts.delete(address);
   const session = await createSession(adminSecret(env));
   return jsonResponse(
     request,
@@ -344,8 +328,6 @@ async function updateConfig(request, env, store) {
     allowedUsers: body.allowedUsers,
     repoUrl: body.repoUrl,
     card: body.card,
-    oauthClientId: body.oauthClientId,
-    oauthLogin: body.oauthLogin,
   });
   await store.updateConfig(nextSite);
 
@@ -353,27 +335,14 @@ async function updateConfig(request, env, store) {
     if (!tokenLooksValid(body.githubToken)) {
       return jsonResponse(request, 400, {
         error: "INVALID_TOKEN",
-        message: "GitHub Token 格式不正确。",
+        message:
+          "GitHub 令牌格式不正确。请粘贴以 ghp_、github_pat_ 等开头的完整令牌。",
       });
     }
     await store.setSecret("githubToken", String(body.githubToken).trim());
   } else if (body.githubTokenAction === "clear") {
     await store.clearSecret("githubToken");
   }
-
-  if (body.oauthClientSecretAction === "set") {
-    const secret = String(body.oauthClientSecret || "").trim();
-    if (secret.length < 20 || secret.length > 200) {
-      return jsonResponse(request, 400, {
-        error: "INVALID_OAUTH_SECRET",
-        message: "GitHub OAuth Client Secret 格式不正确。",
-      });
-    }
-    await store.setSecret("oauthClientSecret", secret);
-  } else if (body.oauthClientSecretAction === "clear") {
-    await store.clearSecret("oauthClientSecret");
-  }
-  if (body.clearOAuthToken) await store.clearSecret("oauthToken");
 
   clearProfileCache();
   clearAssetCache();
@@ -383,111 +352,30 @@ async function updateConfig(request, env, store) {
   });
 }
 
-async function beginOAuth(request, env, store, site) {
+async function testGitHubConnection(request, env, site) {
   if (!sameOrigin(request)) {
     return jsonResponse(request, 403, { error: "ORIGIN_REJECTED" });
   }
-  const secrets = await store.getSecrets();
-  const clientId = site.oauthClientId || env.GITHUB_CLIENT_ID || "";
-  const clientSecret = secrets.oauthClientSecret || env.GITHUB_CLIENT_SECRET || "";
-  if (!clientId || !clientSecret) {
-    return jsonResponse(request, 400, {
-      error: "OAUTH_NOT_CONFIGURED",
-      message: "请先保存 GitHub OAuth Client ID 和 Client Secret。",
-    });
-  }
-  const payload = `oauth.${Date.now()}.${base64url(crypto.getRandomValues(new Uint8Array(18)))}`;
-  const state = await signedValue(adminSecret(env), payload);
-  const authorize = new URL("https://github.com/login/oauth/authorize");
-  authorize.searchParams.set("client_id", clientId);
-  authorize.searchParams.set("redirect_uri", `${externalOrigin(request)}/admin/oauth/github/callback`);
-  authorize.searchParams.set("scope", "read:user");
-  authorize.searchParams.set("state", state);
-  authorize.searchParams.set("allow_signup", "false");
-  return new Response(null, {
-    status: 302,
-    headers: adminHeaders(request, {
-      Location: authorize.toString(),
-      "Set-Cookie": cookie(OAUTH_STATE_COOKIE, state, request, { maxAge: 900 }),
-    }),
-  });
-}
-
-async function finishOAuth(request, env, store, site) {
-  if (!sameOrigin(request)) {
-    return htmlResponse(request, 403, "OAuth 请求来源校验失败。");
-  }
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code") || "";
-  const state = url.searchParams.get("state") || "";
-  const storedState = cookies(request)[OAUTH_STATE_COOKIE];
-  const statePayload = await verifySignedValue(adminSecret(env), state, 900);
-  if (!code || !statePayload || state !== storedState) {
-    return htmlResponse(request, 400, "OAuth state 校验失败，请返回管理后台重试。");
-  }
-  const secrets = await store.getSecrets();
-  const clientId = site.oauthClientId || env.GITHUB_CLIENT_ID || "";
-  const clientSecret = secrets.oauthClientSecret || env.GITHUB_CLIENT_SECRET || "";
-  if (!clientId || !clientSecret) {
-    return htmlResponse(request, 400, "GitHub OAuth 应用配置不完整。");
-  }
-
-  let response;
+  const startedAt = Date.now();
   try {
-    response = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": "DearLicy-profile-card",
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: `${externalOrigin(request)}/admin/oauth/github/callback`,
-      }),
+    const profile = await fetchProfileData(env, site.defaultUsername);
+    return jsonResponse(request, 200, {
+      ok: true,
+      login: profile.login,
+      stars: profile.stars,
+      repositories: profile.repositories,
+      source: env.GITHUB_TOKEN ? "graphql" : "public-rest",
+      latencyMs: Date.now() - startedAt,
     });
-  } catch {
-    return htmlResponse(request, 502, "连接 GitHub OAuth 失败，请稍后重试。");
-  }
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.access_token) {
-    return htmlResponse(
-      request,
-      502,
-      `GitHub OAuth 授权失败：${String(payload.error_description || payload.error || response.status).slice(0, 160)}`,
-    );
-  }
-  const token = String(payload.access_token);
-  let login = "";
-  try {
-    const userResponse = await fetch("https://api.github.com/user", {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "DearLicy-profile-card",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+  } catch (error) {
+    return jsonResponse(request, 502, {
+      error: "GITHUB_TEST_FAILED",
+      message:
+        error instanceof Error
+          ? error.message
+          : "无法连接 GitHub，请检查令牌后重试。",
     });
-    if (userResponse.ok) {
-      const user = await userResponse.json();
-      login = String(user.login || "").slice(0, 39);
-    }
-  } catch {}
-  await store.setSecret("oauthToken", token);
-  await store.updateConfig({ ...site, oauthLogin: login });
-  clearProfileCache();
-  return new Response(null, {
-    status: 302,
-    headers: adminHeaders(request, {
-      Location: "/admin?oauth=connected",
-      "Set-Cookie": cookie(OAUTH_STATE_COOKIE, "", request, {
-        maxAge: 0,
-        clear: true,
-      }),
-    }),
-  });
+  }
 }
 
 export async function handleAdminRequest(request, env, ctx, site) {
@@ -498,7 +386,7 @@ export async function handleAdminRequest(request, env, ctx, site) {
     return htmlResponse(
       request,
       503,
-      "<!doctype html><meta charset=utf-8><title>Admin unavailable</title><body style='font:16px system-ui;padding:40px;background:#0d0e12;color:#f5f2ec'><h1>管理后台尚未启用</h1><p>请先配置 <code>ADMIN_SECRET</code> 并启用持久化存储。</p></body>",
+      "<!doctype html><html lang='zh-CN'><meta charset='utf-8'><title>管理后台不可用</title><body style='font:16px system-ui;padding:40px;background:#111318;color:#f6f2eb'><h1>管理后台尚未启用</h1><p>请先配置 <code>ADMIN_SECRET</code> 并启用持久化存储。</p></body></html>",
     );
   }
   const authed = await hasSession(request, secret);
@@ -510,30 +398,34 @@ export async function handleAdminRequest(request, env, ctx, site) {
     if (authed) {
       return new Response(null, {
         status: 302,
-        headers: adminHeaders(request, { Location: "/admin" }),
-      });
-    }
-    return htmlResponse(request, 200, renderAdminLoginPage({ origin: externalOrigin(request) }));
-  }
-  if (url.pathname === "/admin" && (request.method === "GET" || request.method === "HEAD")) {
-    if (!authed) {
-      return new Response(null, {
-        status: 302,
-        headers: adminHeaders(request, { Location: "/admin/login" }),
+        headers: adminHeaders({ Location: "/admin" }),
       });
     }
     return htmlResponse(
       request,
       200,
-      renderAdminDashboardPage({
-        origin: externalOrigin(request),
-        oauthMessage: url.searchParams.get("oauth") || "",
-      }),
+      renderAdminLoginPage({ origin: externalOrigin(request) }),
+    );
+  }
+  if (
+    url.pathname === "/admin" &&
+    ["GET", "HEAD"].includes(request.method)
+  ) {
+    if (!authed) {
+      return new Response(null, {
+        status: 302,
+        headers: adminHeaders({ Location: "/admin/login" }),
+      });
+    }
+    return htmlResponse(
+      request,
+      200,
+      renderAdminDashboardPage({ origin: externalOrigin(request) }),
     );
   }
   if (url.pathname === "/admin/api/login" && request.method === "POST") {
     try {
-      return await handleLogin(request, env, store);
+      return await handleLogin(request, env);
     } catch (error) {
       return jsonResponse(request, error.status || 400, {
         error: "BAD_REQUEST",
@@ -554,12 +446,19 @@ export async function handleAdminRequest(request, env, ctx, site) {
     }
     return new Response(null, {
       status: 302,
-      headers: adminHeaders(request, { Location: "/admin/login" }),
+      headers: adminHeaders({ Location: "/admin/login" }),
     });
   }
 
-  if (url.pathname === "/admin/api/config" && (request.method === "GET" || request.method === "HEAD")) {
-    return jsonResponse(request, 200, await dashboardPayload(env, store, site));
+  if (
+    url.pathname === "/admin/api/config" &&
+    ["GET", "HEAD"].includes(request.method)
+  ) {
+    return jsonResponse(
+      request,
+      200,
+      await dashboardPayload(env, store, site),
+    );
   }
   if (url.pathname === "/admin/api/config" && request.method === "PUT") {
     try {
@@ -576,22 +475,8 @@ export async function handleAdminRequest(request, env, ctx, site) {
     clearAssetCache();
     return jsonResponse(request, 200, { ok: true });
   }
-  if (url.pathname === "/admin/oauth/github" && request.method === "GET") {
-    try {
-      return await beginOAuth(request, env, store, site);
-    } catch (error) {
-      return jsonResponse(request, 500, {
-        error: "OAUTH_START_FAILED",
-        message: error.message || "无法开始 OAuth。",
-      });
-    }
-  }
-  if (url.pathname === "/admin/oauth/github/callback" && request.method === "GET") {
-    try {
-      return await finishOAuth(request, env, store, site);
-    } catch (error) {
-      return htmlResponse(request, 500, `OAuth 回调处理失败：${String(error.message || "").slice(0, 160)}`);
-    }
+  if (url.pathname === "/admin/api/github/test" && request.method === "POST") {
+    return testGitHubConnection(request, env, site);
   }
 
   return jsonResponse(request, 404, { error: "NOT_FOUND" });

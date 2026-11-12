@@ -1,8 +1,8 @@
 # Security
 
 Please report vulnerabilities privately through GitHub Security Advisories on
-the repository. Do not include GitHub tokens, `ADMIN_SECRET` values, OAuth
-client secrets, or private repository data in an issue.
+the repository. Do not include GitHub tokens, `ADMIN_SECRET` values, or
+private repository data in an issue.
 
 ## Operational notes
 
@@ -11,7 +11,7 @@ client secrets, or private repository data in an issue.
 - GitHub credentials are encrypted with AES-GCM before being written to
   `data/config.json`. The data directory is created with restrictive
   permissions, and the file is written atomically with mode `0600`.
-- Admin API responses never return stored tokens or client secrets.
+- Admin API responses never return stored tokens.
 - Admin sessions are HMAC-signed, `HttpOnly`, `SameSite=Lax`, and use the
   `Secure` attribute when the public request is HTTPS.
 - Unsafe admin requests validate the `Origin` header and require an active

@@ -74,15 +74,12 @@ export class FileSiteStore {
 
   async getSecrets() {
     const state = await this.load();
-    const entries = await Promise.all([
-      secretValue(state.secrets, "githubToken", this.adminSecret),
-      secretValue(state.secrets, "oauthClientSecret", this.adminSecret),
-      secretValue(state.secrets, "oauthToken", this.adminSecret),
-    ]);
     return {
-      githubToken: entries[0],
-      oauthClientSecret: entries[1],
-      oauthToken: entries[2],
+      githubToken: await secretValue(
+        state.secrets,
+        "githubToken",
+        this.adminSecret,
+      ),
       source: state.secrets.source || "",
     };
   }
@@ -103,16 +100,15 @@ export class FileSiteStore {
   }
 
   async setSecret(name, value) {
-    if (!["githubToken", "oauthClientSecret", "oauthToken"].includes(name)) {
+    if (name !== "githubToken") {
       throw new Error("Unsupported secret name");
     }
     const sealed = value ? await sealSecret(value, this.adminSecret) : "";
     this.writeQueue = this.writeQueue.catch(() => undefined).then(async () => {
       const state = await this.load();
       state.secrets[name] = sealed;
-      if (name === "oauthToken" && value) state.secrets.source = "oauth";
       if (name === "githubToken" && value) state.secrets.source = "token";
-      if (!state.secrets.githubToken && !state.secrets.oauthToken) {
+      if (!state.secrets.githubToken) {
         state.secrets.source = "";
       }
       this.loaded = state;
@@ -133,10 +129,7 @@ export class FileSiteStore {
     } catch {}
     return {
       persisted: Boolean(state.config.updatedAt),
-      hasToken: Boolean(secrets.githubToken || secrets.oauthToken),
-      hasOAuthClient: Boolean(state.config.oauthClientId && secrets.oauthClientSecret),
-      oauthConnected: Boolean(secrets.oauthToken),
-      oauthLogin: state.config.oauthLogin || "",
+      hasToken: Boolean(secrets.githubToken),
       source: secrets.source,
       fileMode,
     };

@@ -15,8 +15,6 @@ services:
       DEFAULT_USERNAME: ${DEFAULT_USERNAME:-DearLicy}
       SITE_MODE: ${SITE_MODE:-public}
       PUBLIC_REPO_URL: ${PUBLIC_REPO_URL:-https://github.com/DearLicy/dearlicy-profile-card}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       ASSET_HOSTS: ${ASSET_HOSTS:-}
     volumes:
       - ./data:/app/data
