@@ -43,7 +43,7 @@ test("normalizes usernames and rejects non-profile URLs", () => {
 
 test("parses customizable card query parameters", () => {
   const query = new URLSearchParams(
-    "theme=ocean&accent=%23FFAA00&bgTL=0.7&bgTR=0.1&bgBR=0.9&bgBL=0.2&h1=Hello&note=Keep+building.",
+    "theme=ocean&accent=%23FFAA00&bgTL=0.7&bgTR=0.1&bgBR=0.9&bgBL=0.2&bgImage=123e4567-e89b-12d3-a456-426614174000&h1=Hello&note=Keep+building.",
   );
   const config = configFromSearchParams(query);
   assert.equal(config.theme, "ocean");
@@ -56,6 +56,12 @@ test("parses customizable card query parameters", () => {
   });
   assert.equal(config.headlineOne, "Hello");
   assert.equal(config.footerNote, "Keep building.");
+  assert.equal(config.backgroundImage, "123e4567-e89b-12d3-a456-426614174000");
+  assert.equal(
+    configFromSearchParams(new URLSearchParams("bgImage=not-an-image-id"))
+      .backgroundImage,
+    "",
+  );
 });
 
 test("renders valid, escaped animated SVG for all themes", () => {
@@ -145,11 +151,13 @@ test("error cards respect the selected theme", () => {
 test("site access mode only permits configured profiles in private mode", () => {
   const site = normalizeSiteConfig({
     mode: "private",
+    allowPublicUploads: true,
     defaultUsername: "DearLicy",
     allowedUsers: "DearLicy, octocat",
   });
   assert.equal(profileAllowed(site, "dearlicy"), true);
   assert.equal(profileAllowed(site, "Octocat"), true);
   assert.equal(profileAllowed(site, "torvalds"), false);
+  assert.equal(site.allowPublicUploads, true);
   assert.deepEqual(publicSiteConfig(site).allowedUsers, ["DearLicy", "octocat"]);
 });

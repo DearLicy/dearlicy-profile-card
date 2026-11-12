@@ -16,6 +16,13 @@ import {
   testGitHubConnection,
   updateConfig,
 } from "./controller.js";
+import {
+  adminImagePath,
+  handleAdminImageDelete,
+  handleAdminImageList,
+  handleAdminImageUpdate,
+  handleAdminImageUpload,
+} from "../handlers/images.js";
 import { externalOrigin } from "./request.js";
 import { hasSession } from "./session.js";
 
@@ -122,6 +129,36 @@ export async function handleAdminRequest(request, env, ctx, site) {
   }
   if (url.pathname === "/admin/api/github/test" && request.method === "POST") {
     return testGitHubConnection(request, env, site);
+  }
+  if (url.pathname === "/admin/api/images") {
+    const runtime = { env, site };
+    if (["GET", "HEAD"].includes(request.method)) {
+      return handleAdminImageList(request, runtime);
+    }
+    if (request.method === "POST") {
+      return handleAdminImageUpload(request, runtime);
+    }
+    return adminJsonResponse(
+      request,
+      405,
+      { error: "METHOD_NOT_ALLOWED" },
+      { Allow: "GET, HEAD, POST" },
+    );
+  }
+  if (adminImagePath(url.pathname)) {
+    const runtime = { env, site };
+    if (request.method === "PATCH") {
+      return handleAdminImageUpdate(request, runtime);
+    }
+    if (request.method === "DELETE") {
+      return handleAdminImageDelete(request, runtime);
+    }
+    return adminJsonResponse(
+      request,
+      405,
+      { error: "METHOD_NOT_ALLOWED" },
+      { Allow: "PATCH, DELETE" },
+    );
   }
   return adminJsonResponse(request, 404, { error: "NOT_FOUND" });
 }

@@ -360,6 +360,129 @@ export const ADMIN_SHELL_CSS = `
   .token-help::part(summary) { font-size: 12px; font-weight: 680; }
   .token-help::part(content) { color: var(--muted); font-size: 11.5px; }
   .token-help ol { margin: 4px 0 16px; padding-left: 19px; line-height: 1.8; }
+  .admin-upload-job {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px 14px 13px;
+    border: 1px solid var(--line);
+    border-radius: 3px 12px 12px 12px;
+    background: var(--field);
+  }
+  .background-status-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+  }
+  .background-status-row sl-badge { flex: 0 1 auto; }
+  .background-percent {
+    margin-left: auto;
+    color: var(--text-soft);
+    font: 650 10px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .admin-upload-job sl-progress-bar {
+    --height: 5px;
+    --track-color: var(--line);
+    --indicator-color: var(--blue);
+  }
+  .admin-upload-job sl-progress-bar::part(base) { border-radius: 999px; box-shadow: none; }
+  .admin-upload-job sl-progress-bar::part(indicator) { border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--accent)); }
+  .admin-upload-job.is-complete sl-progress-bar::part(indicator) { background: var(--success); }
+  .admin-upload-job.is-error sl-progress-bar::part(indicator) { background: var(--danger); }
+  .background-help { color: var(--dim); font-size: 10px; line-height: 1.5; }
+  .admin-upload-job.is-complete .background-help { color: var(--success); }
+  .admin-upload-job.is-error .background-help { color: var(--danger); }
+  .admin-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+  }
+  .admin-image-skeleton {
+    display: block;
+    --border-radius: 12px;
+    height: 218px;
+  }
+  .admin-image-card {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px 14px 14px 14px;
+    background: var(--field);
+    box-shadow: 2px 2px 0 var(--line);
+  }
+  .admin-image-thumb {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #11100e;
+  }
+  .admin-image-preview {
+    position: absolute;
+    inset: 8px;
+    display: block;
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
+    min-width: 0;
+    min-height: 0;
+  }
+  .admin-image-preview::part(base) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .admin-image-preview::part(label) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .admin-image-preview:hover::part(base) { transform: none; box-shadow: none; }
+  .admin-image-preview img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity 180ms var(--ease); }
+  .admin-image-preview:hover img { opacity: .9; }
+  .admin-image-thumb sl-badge { position: absolute; top: 8px; left: 8px; }
+  .admin-image-body { display: grid; gap: 5px; min-width: 0; padding: 10px 11px 8px; }
+  .admin-image-body strong { overflow: hidden; font-size: 12px; font-weight: 720; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-image-body small { color: var(--dim); font: 500 9px/1.45 var(--font-mono); overflow-wrap: anywhere; }
+  .admin-image-actions { display: flex; gap: 5px; padding: 0 9px 9px; }
+  .admin-image-actions sl-button { flex: 1 1 0; }
+  .admin-image-actions sl-button::part(base) { width: 100%; min-height: 33px; padding-inline: 7px; font-size: 10px; }
+  .admin-image-empty { margin: 8px 0 0; padding: 22px 18px; border: 1px dashed var(--line-strong); border-radius: 3px 12px 12px 12px; color: var(--muted); font-size: 11.5px; line-height: 1.65; text-align: center; }
+  .delete-dialog-copy { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+  .image-lightbox-dialog::part(panel) {
+    width: min(1080px, 94vw);
+    max-width: 1080px;
+    background: #0b0a08;
+    color: #f7efe2;
+  }
+  .image-lightbox-dialog::part(header) { background: #0b0a08; color: #f7efe2; }
+  .image-lightbox-dialog::part(title) { color: #f7efe2; font-size: 14px; }
+  .image-lightbox-dialog::part(close-button) { color: #f7efe2; }
+  .image-lightbox-dialog::part(body) { padding: 0 14px 14px; background: #0b0a08; }
+  .image-lightbox-frame {
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    overflow: hidden;
+    border: 1px solid rgba(247, 239, 226, .18);
+    border-radius: 4px 16px 16px 16px;
+    background:
+      radial-gradient(circle at 6px 6px, rgba(255,255,255,.08) 1px, transparent 1.5px) 0 0 / 18px 18px,
+      #070605;
+  }
+  .image-lightbox-frame img { display: block; width: auto; max-width: 100%; max-height: min(76vh, 900px); object-fit: contain; }
   .savebar {
     --action: #f1e7d6;
     --action-strong: #fff8ec;

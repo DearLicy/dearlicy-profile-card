@@ -9,6 +9,12 @@ import {
   handleStudioPage,
 } from "./handlers/studio.js";
 import {
+  handleImageAsset,
+  handlePublicImageList,
+  handlePublicImageUpload,
+  publicImageRoute,
+} from "./handlers/images.js";
+import {
   methodNotAllowed,
   notFound,
 } from "./http.js";
@@ -30,6 +36,15 @@ async function route(request, env, ctx) {
   if (isAdmin) {
     return handleAdminRequest(request, runtime.env, ctx, runtime.site);
   }
+  if (url.pathname === "/api/images" && request.method === "POST") {
+    return handlePublicImageUpload(request, runtime);
+  }
+  if (publicImageRoute(url.pathname)) {
+    if (!["GET", "HEAD"].includes(request.method)) {
+      return methodNotAllowed(request);
+    }
+    return handleImageAsset(request, runtime.env);
+  }
   if (!["GET", "HEAD"].includes(request.method)) {
     return methodNotAllowed(request);
   }
@@ -41,6 +56,9 @@ async function route(request, env, ctx) {
     return handleSummaryRequest(request, ctx, runtime);
   }
   if (url.pathname === "/api/site") return handlePublicSite(request, runtime);
+  if (url.pathname === "/api/images") {
+    return handlePublicImageList(request, runtime);
+  }
   if (HEALTH_PATHS.has(url.pathname)) return handleHealth(request, runtime);
   return notFound(request);
 }

@@ -18,17 +18,23 @@ private repository data in an issue.
   session. Login attempts are rate-limited in memory.
 - The card endpoint only returns aggregate public GitHub data. GraphQL queries
   explicitly request public repositories.
-- Backgrounds are compressed in the visitor's browser and sent as a bounded
-  `bgData` value. The server decodes at most 18 KB and does not proxy or store
-  the original image.
-- `bg` and `photo` URLs must use HTTPS. Server-side background fetching is
-  disabled unless `ALLOW_SERVER_BACKGROUND_FETCH=true`; remote avatar fetching
-  outside the trusted host allowlist is disabled unless
-  `ALLOW_REMOTE_ASSET_FETCH=true`. Enabling either option increases bandwidth
-  use and the outbound-request attack surface.
-- Reverse proxies must allow the bounded `bgData` query string. The Node adapter
-  caps headers at 64 KB; gateway configuration is deployment-owned. Request
-  logs redact background and avatar parameters.
+- Images are compressed in the visitor's browser and uploaded as WebP with a
+  1 MB hard limit. The server validates the WebP signature and dimensions
+  before writing files to `data/images/` and the manifest to
+  `data/image-library.json`.
+- Guest uploads remain unpublished until an administrator approves them.
+  Guest upload routes are same-origin checked and rate-limited to eight
+  attempts per hour per address.
+- Public image assets are immutable and only expose published images.
+  Unpublished images require a valid administrator session.
+- The card API accepts a published image UUID through `bgImage`; it does not
+  accept arbitrary background or avatar URLs and does not proxy user-supplied
+  images. GitHub avatars may use the trusted host allowlist, and
+  `ALLOW_REMOTE_ASSET_FETCH=true` should remain off unless there is a concrete
+  operational need.
+- Reverse proxies should allow upload bodies up to about 2 MB. The Node adapter
+  enforces the image size limit; gateway configuration is deployment-owned.
+  Request logs redact sensitive query parameters.
 
 Run the service behind HTTPS in production. Keep the Docker port bound to
 `127.0.0.1` and expose it through a reverse proxy.

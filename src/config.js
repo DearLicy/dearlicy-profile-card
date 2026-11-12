@@ -139,15 +139,13 @@ export const CARD_THEMES = {
 export const DEFAULT_CARD_CONFIG = Object.freeze({
   theme: "midnight",
   accent: "",
-  backgroundUrl: "",
-  backgroundData: "",
+  backgroundImage: "",
   backgroundCorners: {
     tl: 0.5,
     tr: 0.24,
     br: 0.38,
     bl: 0.16,
   },
-  avatarUrl: "",
   mark: "",
   headlineOne: "",
   headlineTwo: "",
@@ -157,8 +155,8 @@ export const DEFAULT_CARD_CONFIG = Object.freeze({
 });
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-const MAX_BACKGROUND_DATA = 24_000;
-const ASSET_URL_KEYS = new Set(["backgroundUrl", "avatarUrl"]);
+const IMAGE_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function text(value, maxLength) {
   return String(value ?? "")
@@ -167,34 +165,15 @@ function text(value, maxLength) {
     .slice(0, maxLength);
 }
 
-function httpsUrl(value) {
-  const candidate = text(value, 2048);
-  if (!candidate) return "";
-  try {
-    const url = new URL(candidate);
-    return url.protocol === "https:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
 function opacity(value, fallback) {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, Math.min(1, parsed));
 }
 
-function base64Url(value) {
+function imageId(value) {
   const candidate = String(value ?? "").trim();
-  if (
-    !candidate ||
-    candidate.length > MAX_BACKGROUND_DATA ||
-    !/^[a-z0-9_-]+$/i.test(candidate) ||
-    candidate.length % 4 === 1
-  ) {
-    return "";
-  }
-  return candidate;
+  return IMAGE_ID.test(candidate) ? candidate.toLowerCase() : "";
 }
 
 export function normalizeCardConfig(input = {}, defaults = DEFAULT_CARD_CONFIG) {
@@ -218,15 +197,13 @@ export function normalizeCardConfig(input = {}, defaults = DEFAULT_CARD_CONFIG) 
   return {
     theme,
     accent: HEX_COLOR.test(accent) ? accent.toUpperCase() : "",
-    backgroundUrl: httpsUrl(merged.backgroundUrl),
-    backgroundData: base64Url(merged.backgroundData),
+    backgroundImage: imageId(merged.backgroundImage),
     backgroundCorners: {
       tl: opacity(merged.backgroundCorners.tl, DEFAULT_CARD_CONFIG.backgroundCorners.tl),
       tr: opacity(merged.backgroundCorners.tr, DEFAULT_CARD_CONFIG.backgroundCorners.tr),
       br: opacity(merged.backgroundCorners.br, DEFAULT_CARD_CONFIG.backgroundCorners.br),
       bl: opacity(merged.backgroundCorners.bl, DEFAULT_CARD_CONFIG.backgroundCorners.bl),
     },
-    avatarUrl: httpsUrl(merged.avatarUrl),
     mark: text(merged.mark, 24).toUpperCase(),
     headlineOne: text(merged.headlineOne, 42),
     headlineTwo: text(merged.headlineTwo, 48),
@@ -241,9 +218,7 @@ export function configFromSearchParams(searchParams, defaults = DEFAULT_CARD_CON
   const input = {
     theme: searchParams.get("theme") || current.theme,
     accent: searchParams.get("accent") || current.accent,
-    backgroundUrl: searchParams.get("bg") || current.backgroundUrl,
-    backgroundData: searchParams.get("bgData") || current.backgroundData,
-    avatarUrl: searchParams.get("photo") || current.avatarUrl,
+    backgroundImage: searchParams.get("bgImage") || current.backgroundImage,
     mark: searchParams.get("mark") || current.mark,
     headlineOne: searchParams.get("h1") || current.headlineOne,
     headlineTwo: searchParams.get("h2") || current.headlineTwo,
@@ -274,8 +249,4 @@ export function themePalette(config) {
 
 export function publicCardConfig(config) {
   return normalizeCardConfig(config);
-}
-
-export function isAssetUrlKey(key) {
-  return ASSET_URL_KEYS.has(key);
 }

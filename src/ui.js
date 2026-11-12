@@ -40,6 +40,10 @@ export const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.4 1a7.4 7.4 0 0 0-2.1-1.2L14 3h-4l-.4 2.7a7.4 7.4 0 0 0-2.1 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7.4 7.4 0 0 0 2.1 1.2L10 21h4l.4-2.7a7.4 7.4 0 0 0 2.1-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
   logout:
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3M14 8l4 4-4 4M18 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  image:
+    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><circle cx="8.2" cy="9.2" r="1.7" stroke="currentColor" stroke-width="1.5"/><path d="m4 17 4.6-4.6a1.8 1.8 0 0 1 2.5 0l2.1 2.1 1.6-1.6a1.8 1.8 0 0 1 2.5 0L20 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  upload:
+    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   check:
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
@@ -81,6 +85,8 @@ export const SHOELACE_IMPORTS = `
   import "/vendor/shoelace/components/button/button.js";
   import "/vendor/shoelace/components/color-picker/color-picker.js";
   import "/vendor/shoelace/components/details/details.js";
+  import "/vendor/shoelace/components/dialog/dialog.js";
+  import "/vendor/shoelace/components/drawer/drawer.js";
   import "/vendor/shoelace/components/input/input.js";
   import "/vendor/shoelace/components/option/option.js";
   import "/vendor/shoelace/components/progress-bar/progress-bar.js";

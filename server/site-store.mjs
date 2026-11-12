@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { normalizeSiteConfig } from "../src/site-config.js";
 import { openSecret, sealSecret } from "../src/secrets.js";
+import { FileImageStore } from "./image-store.mjs";
 
 const EMPTY_STATE = Object.freeze({
   version: 1,
@@ -54,6 +55,7 @@ export class FileSiteStore {
     this.filePath = statePath(dataDir);
     this.adminSecret = adminSecret;
     this.defaults = normalizeSiteConfig(defaults);
+    this.images = new FileImageStore({ dataDir });
     this.loaded = null;
     this.writeQueue = Promise.resolve();
   }

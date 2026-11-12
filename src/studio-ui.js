@@ -662,6 +662,129 @@ export const STUDIO_CSS = `
   }
   .background-job.is-complete .background-help { color: var(--success); }
   .background-job.is-error .background-help { color: var(--danger); }
+  .library-title { margin-top: 0; }
+  .selected-image-frame {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 118px;
+    max-height: 218px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px 4px 12px 4px;
+    background:
+      radial-gradient(circle at 5px 5px, var(--line) 1px, transparent 1.5px) 0 0 / 14px 14px,
+      var(--field);
+  }
+  .selected-image-frame.has-image { border-style: solid; background: #11100e; }
+  .selected-image-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 218px;
+    object-fit: contain;
+  }
+  .selected-image-empty {
+    display: grid;
+    place-items: center;
+    gap: 7px;
+    padding: 24px;
+    color: var(--dim);
+    font-size: 10.5px;
+    text-align: center;
+  }
+  .selected-image-icon { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); }
+  .selected-image-icon svg { width: 16px; height: 16px; }
+  .library-selection-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .library-selection-actions sl-button::part(base) { width: 100%; min-height: 39px; justify-content: center; }
+  .image-drawer {
+    --size: min(480px, 100vw);
+    --panel-background-color: var(--canvas);
+    --panel-border-color: var(--line-strong);
+  }
+  .image-drawer::part(panel) { background: var(--canvas); }
+  .image-drawer::part(header) {
+    align-items: center;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--canvas);
+  }
+  .image-drawer::part(title) { padding: 0; font-size: 16px; font-weight: 750; }
+  .image-drawer::part(close-button) { width: 32px; height: 32px; align-self: center; }
+  .image-drawer::part(body) { padding: 0 18px 26px; overflow-y: auto; background: var(--canvas); }
+  .image-drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .image-drawer-head strong { display: block; font-size: 12.5px; }
+  .image-drawer-head small { display: block; margin-top: 3px; color: var(--dim); font-size: 10px; line-height: 1.5; }
+  .library-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 14px 0 12px;
+  }
+  .library-copy { min-width: 0; }
+  .library-copy strong { display: block; font-size: 11.5px; font-weight: 700; }
+  .library-copy small { display: block; overflow: hidden; margin-top: 2px; color: var(--dim); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+  .library-toolbar sl-button::part(base) { min-height: 32px; padding-inline: 10px; font-size: 10.5px; }
+  .library-toolbar sl-button::part(prefix) svg { width: 13px; height: 13px; }
+  .image-library {
+    column-count: 2;
+    column-gap: 8px;
+    min-height: 83px;
+  }
+  .library-skeleton {
+    display: block;
+    break-inside: avoid;
+    margin-bottom: 8px;
+    --border-radius: 10px;
+    height: 118px;
+  }
+  .image-library sl-button.library-card {
+    display: block;
+    width: 100%;
+    margin: 0 0 8px;
+    break-inside: avoid;
+  }
+  .library-card::part(base) {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 11px 4px 11px 4px;
+    background: var(--field);
+    color: var(--ink);
+    box-shadow: none;
+  }
+  .library-card::part(label) { display: block; width: 100%; padding: 0; }
+  .library-card:hover::part(base) { transform: translateY(-1px); border-color: var(--line-strong); box-shadow: 2px 2px 0 var(--line-strong); }
+  .library-card.is-selected::part(base) { border-color: var(--ink); box-shadow: 3px 3px 0 var(--blue); }
+  .library-card img { display: block; width: 100%; height: auto; object-fit: contain; background: #11100e; }
+  .library-empty {
+    margin: 8px 0 0;
+    padding: 14px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 10.5px;
+    line-height: 1.55;
+    text-align: center;
+  }
+  .image-upload-job { margin: 0 0 13px; }
   .corner-map {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -782,7 +905,14 @@ export const STUDIO_CSS = `
     .brand-copy span, .compact-badge, .github-label { display: none; }
     .brand-mark { width: 38px; height: 38px; border-radius: 11px 6px 11px 6px; box-shadow: 2px 2px 0 var(--ink); }
     .brand-glyph { font-size: 18px; }
-    .github-link::part(base) { width: 42px; min-width: 42px; padding: 0; }
+    .github-link::part(base) {
+      width: 42px;
+      min-width: 42px;
+      padding: 0;
+      justify-content: center;
+    }
+    .github-link::part(label) { display: none; }
+    .github-link::part(prefix) { margin: 0; }
     .github-link::part(suffix) { display: none; }
     .mesh-disc { top: 130px; left: -96px; width: 210px; opacity: .74; }
     .mesh-ring { top: 12vh; right: -180px; width: 340px; border-width: 28px; }
@@ -854,6 +984,11 @@ export const STUDIO_CSS = `
     .theme-grid sl-button.theme-card:last-child { grid-column: auto; }
     .theme-card::part(label) { grid-template-columns: 48px minmax(0, 1fr) 18px; }
     .theme-art { width: 48px; height: 42px; }
+    .library-toolbar { align-items: flex-start; flex-direction: column; }
+    .library-toolbar sl-button { width: 100%; }
+    .library-toolbar sl-button::part(base) { width: 100%; }
+    .library-selection-actions { grid-template-columns: 1fr; }
+    .image-drawer { --size: 100vw; }
     .result-actions { grid-template-columns: 1fr; }
   }
 `;

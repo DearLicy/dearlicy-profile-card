@@ -1,5 +1,6 @@
 import { ADMIN_DASHBOARD_CSS, ADMIN_LOGIN_CSS } from "./admin-ui.js";
 import { CARD_THEMES } from "./config.js";
+import { IMAGE_CLIENT_SCRIPT } from "./image-client.js";
 import {
   BRAND_MARK,
   PRINT_THEME_CSS,
@@ -191,6 +192,7 @@ export function renderAdminDashboardPage({ origin }) {
         <sl-button class="nav-item is-active" data-section="overview"><span slot="prefix">${ICONS.dashboard}</span><span>运行总览</span></sl-button>
         <sl-button class="nav-item" data-section="access"><span slot="prefix">${ICONS.key}</span><span>访问与实例</span></sl-button>
         <sl-button class="nav-item" data-section="appearance"><span slot="prefix">${ICONS.palette}</span><span>卡片外观</span></sl-button>
+        <sl-button class="nav-item" data-section="images"><span slot="prefix">${ICONS.image}</span><span>图片库</span></sl-button>
         <sl-button class="nav-item" data-section="github"><span slot="prefix">${ICONS.github}</span><span>GitHub 数据</span></sl-button>
         <sl-button class="nav-item" data-section="settings"><span slot="prefix">${ICONS.settings}</span><span>系统设置</span></sl-button>
       </nav>
@@ -285,7 +287,7 @@ export function renderAdminDashboardPage({ origin }) {
           </section>
 
           <section class="dashboard-section" data-section="appearance">
-            <div class="section-intro"><div><h2>卡片外观</h2><p>设置新请求的默认主题、文案、头像和背景。用户仍可通过前台继续调整。</p></div><sl-badge pill>默认样式</sl-badge></div>
+            <div class="section-intro"><div><h2>卡片外观</h2><p>设置新请求的默认主题、文案和图片库背景。用户仍可通过前台继续调整。</p></div><sl-badge pill>默认样式</sl-badge></div>
             <section class="panel form-panel">
               <div class="panel-head"><div><h3>主题与强调色</h3><p>这些值会成为前台编辑器的初始状态。</p></div></div>
               <div class="panel-body form-grid">
@@ -303,8 +305,11 @@ export function renderAdminDashboardPage({ origin }) {
                 ${field({ id: "headlineTwo", label: "标题第二行", maxlength: 48, placeholder: "留空使用默认文案", wide: true })}
                 ${field({ id: "intro", label: "简介", maxlength: 120, placeholder: "留空使用默认文案", textarea: true, wide: true })}
                 ${field({ id: "footerNote", label: "页脚备注", maxlength: 64, placeholder: "例如：保持好奇，持续交付。" })}
-                ${field({ id: "avatarUrl", label: "自定义头像 URL", maxlength: 2048, placeholder: "https://…（留空使用 GitHub 头像）" })}
-                ${field({ id: "backgroundUrl", label: "背景图片 URL", maxlength: 2048, placeholder: "https://…（HTTPS 图片）", help: "仅作为前台处理背景的默认图源；默认不会让服务器抓取或保存原图。", wide: true })}
+                <div class="wide">
+                  <sl-select id="backgroundImage" label="默认图片库背景" placeholder="不使用图片库背景" help-text="只列出已公开图片；用户仍可在前台重新选择。" clearable>
+                    <sl-option value="">不使用图片库背景</sl-option>
+                  </sl-select>
+                </div>
                 <div class="wide">
                   <span class="field-caption">背景四角透明度</span>
                   <div class="range-grid">
@@ -347,6 +352,41 @@ export function renderAdminDashboardPage({ origin }) {
             </section>
           </section>
 
+          <section class="dashboard-section" data-section="images">
+            <div class="section-intro"><div><h2>图片库</h2><p>统一管理实例里的背景图片。所有图片都由浏览器先压缩为 WebP，服务端只保存不超过 1 MB 的压缩结果。</p></div><sl-badge id="imageCountBadge" pill>读取中</sl-badge></div>
+            <div class="stats-grid image-stats">
+              <article class="stat-card"><span>图片总数</span><strong id="imageStatTotal">—</strong><small>最多 500 张</small></article>
+              <article class="stat-card"><span>已公开</span><strong id="imageStatPublished">—</strong><small>游客可在前台选择</small></article>
+              <article class="stat-card"><span>待审核</span><strong id="imageStatPending">—</strong><small>游客上传后默认不公开</small></article>
+              <article class="stat-card"><span>占用空间</span><strong id="imageStatBytes">—</strong><small>不含元数据与索引</small></article>
+            </div>
+            <section class="panel form-panel">
+              <div class="panel-head"><div><h3>游客上传</h3><p>关闭后只有管理员能上传；已公开的图片仍可被游客选择。</p></div><sl-switch id="allowPublicUploads">允许非管理员上传</sl-switch></div>
+              <div class="panel-body">
+                <div class="info-note"><i></i><span>游客上传会先进入待审核状态，不会直接出现在公开图片库。开启或关闭后请点击底部“保存配置”生效。</span></div>
+              </div>
+            </section>
+            <section class="panel form-panel">
+              <div class="panel-head"><div><h3>图片管理</h3><p>管理员上传后直接公开；可以随时下线或删除。</p></div><sl-button id="adminUploadImage" variant="primary" size="small"><span slot="prefix">${ICONS.upload}</span><span>上传图片</span></sl-button></div>
+              <div class="panel-body">
+                <div class="background-job admin-upload-job" id="adminUploadJob" hidden>
+                  <div class="background-status-row">
+                    <sl-badge id="adminUploadStatus" pill>准备上传</sl-badge>
+                    <span class="background-percent" id="adminUploadPercent">0%</span>
+                  </div>
+                  <sl-progress-bar id="adminUploadProgress" value="0" label="管理员图片上传进度"></sl-progress-bar>
+                  <small class="background-help" id="adminUploadHelp">浏览器会先压缩到 1 MB 以内。</small>
+                </div>
+                <div class="admin-image-grid" id="adminImageGrid" aria-live="polite">
+                  <sl-skeleton class="admin-image-skeleton"></sl-skeleton>
+                  <sl-skeleton class="admin-image-skeleton"></sl-skeleton>
+                  <sl-skeleton class="admin-image-skeleton"></sl-skeleton>
+                </div>
+                <p class="admin-image-empty" id="adminImageEmpty" hidden>图片库还是空的。上传第一张背景图片，或等待游客提交。</p>
+              </div>
+            </section>
+          </section>
+
           <section class="dashboard-section" data-section="settings">
             <div class="section-intro"><div><h2>系统设置</h2><p>查看实例地址、存储方式与安全操作。</p></div><sl-badge pill>运行环境</sl-badge></div>
             <section class="panel form-panel">
@@ -374,10 +414,19 @@ export function renderAdminDashboardPage({ origin }) {
       </main>
     </div>
   </div>
+  <sl-dialog id="imageLightboxDialog" label="图片预览" class="image-lightbox-dialog">
+    <div class="image-lightbox-frame"><img id="imageLightboxImage" alt=""></div>
+  </sl-dialog>
+  <sl-dialog id="imageDeleteDialog" label="删除这张图片？">
+    <p class="delete-dialog-copy" id="imageDeleteCopy">删除后，已选择该背景的卡片将不再显示图片，且无法恢复。</p>
+    <sl-button slot="footer" id="cancelImageDelete">取消</sl-button>
+    <sl-button slot="footer" id="confirmImageDelete" variant="danger">确认删除</sl-button>
+  </sl-dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
 
   <script type="module">
     ${SHOELACE_IMPORTS}
+    ${IMAGE_CLIENT_SCRIPT}
 
     function syncComponentTheme() {
       const light = document.documentElement.dataset.theme === "light";
@@ -393,11 +442,12 @@ export function renderAdminDashboardPage({ origin }) {
       note: theme.noteZh || theme.note,
       accent: theme.colors.accent,
     }])))};
-    const state = { config: null, dirty: false };
+    const state = { config: null, dirty: false, images: [], imageStats: null, pendingDelete: null, uploading: false };
     const titles = {
       overview: ["运行总览", "查看实例状态、数据连接与最近配置。"],
       access: ["访问与实例", "控制公开范围、默认用户和项目链接。"],
       appearance: ["卡片外观", "设置所有新请求的默认卡片样式。"],
+      images: ["图片库", "上传、审核、公开或删除背景图片。"],
       github: ["GitHub 数据", "配置只读令牌并检查数据通道。"],
       settings: ["系统设置", "查看实例信息并执行维护操作。"],
     };
@@ -419,8 +469,8 @@ export function renderAdminDashboardPage({ origin }) {
       headlineTwo: document.getElementById("headlineTwo"),
       intro: document.getElementById("intro"),
       footerNote: document.getElementById("footerNote"),
-      avatarUrl: document.getElementById("avatarUrl"),
-      backgroundUrl: document.getElementById("backgroundUrl"),
+      backgroundImage: document.getElementById("backgroundImage"),
+      allowPublicUploads: document.getElementById("allowPublicUploads"),
       githubToken: document.getElementById("githubToken"),
       clearToken: document.getElementById("clearToken"),
       githubBadge: document.getElementById("githubBadge"),
@@ -450,6 +500,25 @@ export function renderAdminDashboardPage({ origin }) {
       repoButton: document.getElementById("repoButton"),
       siteOrigin: document.getElementById("siteOrigin"),
       adminOrigin: document.getElementById("adminOrigin"),
+      imageCountBadge: document.getElementById("imageCountBadge"),
+      imageStatTotal: document.getElementById("imageStatTotal"),
+      imageStatPublished: document.getElementById("imageStatPublished"),
+      imageStatPending: document.getElementById("imageStatPending"),
+      imageStatBytes: document.getElementById("imageStatBytes"),
+      adminImageGrid: document.getElementById("adminImageGrid"),
+      adminImageEmpty: document.getElementById("adminImageEmpty"),
+      adminUploadImage: document.getElementById("adminUploadImage"),
+      adminUploadJob: document.getElementById("adminUploadJob"),
+      adminUploadStatus: document.getElementById("adminUploadStatus"),
+      adminUploadProgress: document.getElementById("adminUploadProgress"),
+      adminUploadPercent: document.getElementById("adminUploadPercent"),
+      adminUploadHelp: document.getElementById("adminUploadHelp"),
+      imageDeleteDialog: document.getElementById("imageDeleteDialog"),
+      imageDeleteCopy: document.getElementById("imageDeleteCopy"),
+      cancelImageDelete: document.getElementById("cancelImageDelete"),
+      confirmImageDelete: document.getElementById("confirmImageDelete"),
+      imageLightboxDialog: document.getElementById("imageLightboxDialog"),
+      imageLightboxImage: document.getElementById("imageLightboxImage"),
     };
     const corners = ["tl", "tr", "bl", "br"];
     let toastTimer;
@@ -478,6 +547,194 @@ export function renderAdminDashboardPage({ origin }) {
     function readSlider(key) {
       return Number(document.getElementById("bg" + key.toUpperCase()).value) / 100;
     }
+    function imageDate(value) {
+      if (!value) return "未知时间";
+      try { return new Date(value).toLocaleString("zh-CN"); } catch { return "未知时间"; }
+    }
+    function setAdminUploadStatus(label, variant, value, help) {
+      elements.adminUploadStatus.textContent = label;
+      elements.adminUploadStatus.variant = variant;
+      elements.adminUploadProgress.value = value;
+      elements.adminUploadPercent.textContent = value + "%";
+      elements.adminUploadJob.classList.toggle("is-complete", value === 100 && variant === "success");
+      elements.adminUploadJob.classList.toggle("is-error", variant === "danger");
+      if (help) elements.adminUploadHelp.textContent = help;
+    }
+    function refreshDefaultImageOptions() {
+      const selected = elements.backgroundImage.value || state.config?.card?.backgroundImage || "";
+      elements.backgroundImage.replaceChildren();
+      const none = document.createElement("sl-option");
+      none.value = "";
+      none.textContent = "不使用图片库背景";
+      elements.backgroundImage.append(none);
+      const published = state.images.filter((image) => image.published);
+      for (const image of published) {
+        const option = document.createElement("sl-option");
+        option.value = image.id;
+        option.textContent = image.label + " · " + image.width + "×" + image.height;
+        elements.backgroundImage.append(option);
+      }
+      elements.backgroundImage.value = published.some((image) => image.id === selected) ? selected : "";
+    }
+    function renderAdminImages() {
+      elements.adminImageGrid.replaceChildren();
+      const images = state.images;
+      const stats = state.imageStats || { total: images.length, published: 0, pending: 0, bytes: 0 };
+      elements.imageStatTotal.textContent = String(stats.total);
+      elements.imageStatPublished.textContent = String(stats.published);
+      elements.imageStatPending.textContent = String(stats.pending);
+      elements.imageStatBytes.textContent = formatImageBytes(stats.bytes);
+      elements.imageCountBadge.textContent = stats.total
+        ? stats.published + " 张已公开 · " + stats.pending + " 张待审核"
+        : "等待第一张图片";
+      elements.imageCountBadge.variant = stats.pending ? "warning" : "neutral";
+      elements.adminImageEmpty.hidden = images.length > 0;
+      for (const image of images) {
+        const card = document.createElement("article");
+        card.className = "admin-image-card";
+        const thumb = document.createElement("div");
+        thumb.className = "admin-image-thumb";
+        const previewButton = document.createElement("sl-button");
+        previewButton.className = "admin-image-preview";
+        previewButton.dataset.imageId = image.id;
+        previewButton.setAttribute("aria-label", "预览 " + image.label);
+        const preview = document.createElement("img");
+        preview.src = image.url;
+        preview.alt = image.label;
+        preview.loading = "lazy";
+        preview.decoding = "async";
+        previewButton.append(preview);
+        const badge = document.createElement("sl-badge");
+        badge.setAttribute("pill", "");
+        badge.setAttribute("variant", image.published ? "success" : "warning");
+        badge.textContent = image.published ? "已公开" : "待审核";
+        thumb.append(previewButton, badge);
+        const body = document.createElement("div");
+        body.className = "admin-image-body";
+        const title = document.createElement("strong");
+        title.textContent = image.label;
+        const meta = document.createElement("small");
+        meta.textContent = image.width + "×" + image.height + " · " + formatImageBytes(image.bytes) + " · " + (image.source === "admin" ? "管理员" : "游客") + " · " + imageDate(image.createdAt);
+        body.append(title, meta);
+        const actions = document.createElement("div");
+        actions.className = "admin-image-actions";
+        const toggle = document.createElement("sl-button");
+        toggle.size = "small";
+        toggle.textContent = image.published ? "下线" : "公开";
+        toggle.addEventListener("click", () => toggleImage(image, toggle));
+        const remove = document.createElement("sl-button");
+        remove.size = "small";
+        remove.setAttribute("variant", "danger");
+        remove.textContent = "删除";
+        remove.addEventListener("click", () => askDeleteImage(image));
+        actions.append(toggle, remove);
+        card.append(thumb, body, actions);
+        elements.adminImageGrid.append(card);
+      }
+      refreshDefaultImageOptions();
+    }
+    function showImageLightbox(image) {
+      elements.imageLightboxImage.src = image.url;
+      elements.imageLightboxImage.alt = image.label;
+      elements.imageLightboxDialog.setAttribute("label", image.label);
+      elements.imageLightboxDialog.show();
+    }
+    async function loadImages() {
+      try {
+        const response = await fetch("/admin/api/images", { cache: "no-store" });
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || "图片库读取失败。");
+        state.images = Array.isArray(payload.images) ? payload.images : [];
+        state.imageStats = payload.stats || null;
+        renderAdminImages();
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "图片库读取失败。");
+      }
+    }
+    async function toggleImage(image, button) {
+      button.disabled = true;
+      button.loading = true;
+      try {
+        const response = await fetch("/admin/api/images/" + image.id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ published: !image.published }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "更新图片状态失败。");
+        toast(image.published ? "图片已下线" : "图片已公开，游客现在可以选择");
+        await loadImages();
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "更新图片状态失败。");
+        button.disabled = false;
+        button.loading = false;
+      }
+    }
+    function askDeleteImage(image) {
+      state.pendingDelete = image;
+      elements.imageDeleteCopy.textContent = "删除“" + image.label + "”后，已选择该背景的卡片将不再显示图片，且无法恢复。";
+      elements.imageDeleteDialog.show();
+    }
+    async function deletePendingImage() {
+      const image = state.pendingDelete;
+      if (!image) return;
+      elements.confirmImageDelete.disabled = true;
+      elements.confirmImageDelete.loading = true;
+      try {
+        const response = await fetch("/admin/api/images/" + image.id, { method: "DELETE" });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "删除图片失败。");
+        elements.imageDeleteDialog.hide();
+        state.pendingDelete = null;
+        toast("图片已删除");
+        await loadImages();
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "删除图片失败。");
+      } finally {
+        elements.confirmImageDelete.disabled = false;
+        elements.confirmImageDelete.loading = false;
+      }
+    }
+    async function uploadAdminImage() {
+      if (state.uploading) return;
+      const file = await chooseImageFile();
+      if (!file) return;
+      state.uploading = true;
+      elements.adminUploadJob.hidden = false;
+      elements.adminUploadImage.disabled = true;
+      elements.adminUploadImage.loading = true;
+      setAdminUploadStatus("读取图片", "neutral", 0, "正在由浏览器压缩，原图不会上传。");
+      try {
+        const compressed = await compressLibraryImage(file, {
+          maxBytes: 980000,
+          onProgress: (value, label) => setAdminUploadStatus(label, "neutral", value, "自动压缩到 1 MB 以内，再进行上传。"),
+        });
+        setAdminUploadStatus("上传压缩图", "neutral", 88, formatImageBytes(compressed.blob.size) + " WebP · 上传后立即公开。");
+        await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file), admin: true });
+        setAdminUploadStatus("上传完成", "success", 100, "图片已加入图片库并公开给游客选择。");
+        toast("图片已上传并公开");
+        await loadImages();
+      } catch (error) {
+        setAdminUploadStatus("上传失败", "danger", 0, error instanceof Error ? error.message : "图片上传失败。");
+        toast(error instanceof Error ? error.message : "图片上传失败。");
+      } finally {
+        state.uploading = false;
+        elements.adminUploadImage.disabled = false;
+        elements.adminUploadImage.loading = false;
+      }
+    }
     function activateSection(name) {
       document.querySelectorAll(".nav-item").forEach((button) => {
         const active = button.dataset.section === name;
@@ -497,6 +754,7 @@ export function renderAdminDashboardPage({ origin }) {
     function cardConfig() {
       const accent = String(elements.accent.value || "").toUpperCase();
       const defaultAccent = String(themes[elements.theme.value]?.accent || "").toUpperCase();
+      const backgroundImage = elements.backgroundImage.value || (state.images.length ? "" : state.config?.card?.backgroundImage || "");
       return {
         theme: elements.theme.value,
         accent: accent === defaultAccent ? "" : accent,
@@ -506,8 +764,7 @@ export function renderAdminDashboardPage({ origin }) {
         headlineTwo: elements.headlineTwo.value,
         intro: elements.intro.value,
         footerNote: elements.footerNote.value,
-        avatarUrl: elements.avatarUrl.value,
-        backgroundUrl: elements.backgroundUrl.value,
+        backgroundImage,
         backgroundCorners: { tl: readSlider("tl"), tr: readSlider("tr"), bl: readSlider("bl"), br: readSlider("br") },
       };
     }
@@ -530,8 +787,8 @@ export function renderAdminDashboardPage({ origin }) {
       setField("headlineTwo", card.headlineTwo);
       setField("intro", card.intro);
       setField("footerNote", card.footerNote);
-      setField("avatarUrl", card.avatarUrl);
-      setField("backgroundUrl", card.backgroundUrl);
+      setField("backgroundImage", card.backgroundImage);
+      elements.allowPublicUploads.checked = Boolean(site.allowPublicUploads);
       setField("siteOrigin", origin);
       setField("adminOrigin", origin + "/admin");
       corners.forEach((key) => setSlider(key, card.backgroundCorners[key]));
@@ -578,6 +835,7 @@ export function renderAdminDashboardPage({ origin }) {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.message || "读取配置失败。");
         hydrate(payload);
+        await loadImages();
       } catch (error) {
         toast(error instanceof Error ? error.message : "读取配置失败。");
       }
@@ -589,6 +847,7 @@ export function renderAdminDashboardPage({ origin }) {
         defaultUsername: elements.defaultUsername.value,
         allowedUsers: elements.allowedUsers.value,
         repoUrl: elements.repoUrl.value,
+        allowPublicUploads: Boolean(elements.allowPublicUploads.checked),
         card: cardConfig(),
         githubTokenAction: token ? "set" : elements.clearToken.checked ? "clear" : "keep",
         githubToken: token,
@@ -691,6 +950,23 @@ export function renderAdminDashboardPage({ origin }) {
     document.getElementById("testGithubButton").addEventListener("click", testGithub);
     document.getElementById("quickGithubButton").addEventListener("click", () => activateSection("github"));
     document.getElementById("quickAppearanceButton").addEventListener("click", () => activateSection("appearance"));
+    elements.adminUploadImage.addEventListener("click", uploadAdminImage);
+    elements.cancelImageDelete.addEventListener("click", () => {
+      state.pendingDelete = null;
+      elements.imageDeleteDialog.hide();
+    });
+    elements.confirmImageDelete.addEventListener("click", deletePendingImage);
+    elements.adminImageGrid.addEventListener("click", (event) => {
+      const preview = event
+        .composedPath()
+        .find((node) => node?.classList?.contains("admin-image-preview"));
+      if (!preview) return;
+      const image = state.images.find((entry) => entry.id === preview.dataset.imageId);
+      if (image) showImageLightbox(image);
+    });
+    elements.imageDeleteDialog.addEventListener("sl-after-hide", () => {
+      if (!elements.confirmImageDelete.loading) state.pendingDelete = null;
+    });
     elements.saveButton.addEventListener("click", save);
     elements.formArea.addEventListener("sl-input", markDirty);
     elements.formArea.addEventListener("sl-change", (event) => {

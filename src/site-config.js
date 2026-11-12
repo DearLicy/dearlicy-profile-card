@@ -10,6 +10,7 @@ export const DEFAULT_REPO_URL =
 
 export const DEFAULT_SITE_CONFIG = Object.freeze({
   mode: "public",
+  allowPublicUploads: false,
   defaultUsername: "DearLicy",
   allowedUsers: ["DearLicy"],
   repoUrl: DEFAULT_REPO_URL,
@@ -62,6 +63,9 @@ export function normalizeSiteConfig(input = {}) {
   }
   return {
     mode: source.mode === "private" ? "private" : "public",
+    allowPublicUploads:
+      source.allowPublicUploads === true ||
+      source.allowPublicUploads === "true",
     defaultUsername,
     allowedUsers,
     repoUrl: httpsUrl(source.repoUrl, DEFAULT_REPO_URL),
@@ -80,6 +84,7 @@ export function profileAllowed(site, login) {
 export function publicSiteConfig(site) {
   return {
     mode: site.mode,
+    allowPublicUploads: Boolean(site.allowPublicUploads),
     defaultUsername: site.defaultUsername,
     allowedUsers: site.allowedUsers,
     repoUrl: site.repoUrl,

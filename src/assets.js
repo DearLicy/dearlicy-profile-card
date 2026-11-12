@@ -17,7 +17,6 @@ const IMAGE_TYPES = new Set([
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const CACHE_LIMIT = 30;
 const imageCache = new Map();
-const MAX_INLINE_BYTES = 18_000;
 
 function allowedHosts(env) {
   const extra = String(env?.ASSET_HOSTS || "")
@@ -83,42 +82,6 @@ function toBase64(buffer) {
     );
   }
   return btoa(binary);
-}
-
-export function sniffImageType(bytes) {
-  if (!bytes?.byteLength) return "";
-  if (
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "image/jpeg";
-  }
-  if (
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  if (
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38
-  ) {
-    return "image/gif";
-  }
-  return "";
 }
 
 function inferredType(url, contentType) {
@@ -203,26 +166,6 @@ export function imageDataUri(buffer, contentType) {
     .toLowerCase();
   if (!IMAGE_TYPES.has(normalized) || !buffer?.byteLength) return "";
   return `data:${normalized};base64,${toBase64(buffer)}`;
-}
-
-export function inlineBackgroundData(value) {
-  const encoded = String(value || "");
-  if (!encoded || encoded.length % 4 === 1) return "";
-  try {
-    const padded = encoded
-      .replaceAll("-", "+")
-      .replaceAll("_", "/")
-      .padEnd(Math.ceil(encoded.length / 4) * 4, "=");
-    const bytes = Uint8Array.from(atob(padded), (char) =>
-      char.charCodeAt(0),
-    );
-    if (!bytes.byteLength || bytes.byteLength > MAX_INLINE_BYTES) return "";
-    const contentType = sniffImageType(bytes);
-    if (!contentType) return "";
-    return imageDataUri(bytes, contentType);
-  } catch {
-    return "";
-  }
 }
 
 export function clearAssetCache() {

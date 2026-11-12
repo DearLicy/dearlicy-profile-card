@@ -3,7 +3,16 @@ import http from "node:http";
 import { createVendorHandler } from "./vendor.mjs";
 
 const MAX_REQUEST_BYTES = 1024 * 1024;
-const REDACTED_QUERY_KEYS = new Set(["bg", "bgData", "photo", "url", "token"]);
+const REDACTED_QUERY_KEYS = new Set([
+  "bg",
+  "bgData",
+  "bgImage",
+  "photo",
+  "url",
+  "user",
+  "username",
+  "token",
+]);
 
 export function externalOrigin(request) {
   const host = String(

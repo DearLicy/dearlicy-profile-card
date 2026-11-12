@@ -36,8 +36,9 @@
 - **一张动态卡片**：所有公开指标集中在一个 SVG 中，风格统一，自动刷新。
 - **直接识别主页链接**：支持 `DearLicy`、`@DearLicy` 和 `https://github.com/DearLicy`。
 - **五套视觉主题**：墨轨、校样、蓝图、海报、瑞士，分别采用轨道、编辑、终端、海报和网格构图，而不是简单换色。
-- **可定制内容**：强调色、头像、两行标题、简介、状态徽标、页脚备注和热门仓库展示。
-- **浏览器内嵌背景**：浏览器直接读取并压缩外部 HTTPS 图片，以不超过 18 KB 的 WebP 写入卡片链接；服务端不保存图片，也不消耗原图带宽。
+- **可定制内容**：强调色、两行标题、简介、状态徽标、页脚备注和热门仓库展示。
+- **受控图片库**：访客或管理员选择的图片会先在浏览器压缩为不超过 1 MB 的 WebP。管理员可以公开、下线或删除图片；游客上传默认进入待审核状态。
+- **完整图片浏览**：前台使用侧边抽屉与瀑布流图片墙选图，后台使用完整尺寸灯箱预览。卡片通过 `bgImage` 引用公开图片，不再接受任意背景或头像 URL。
 - **公开 API 与自用模式**：实例所有者可以开放给所有人，也可以只允许指定账号。
 - **中文管理后台**：访问模式、实例信息、默认外观、GitHub 连接、缓存维护分区管理。
 - **组件化界面**：前后台均使用 Shoelace Web Components，不依赖浏览器原生表单外观。
@@ -60,6 +61,8 @@
 ## 管理后台
 
 访问 `/admin`，使用环境变量 `ADMIN_SECRET` 登录。
+
+后台提供访问模式、默认外观、GitHub 数据连接、缓存维护和图片库管理。图片库支持管理员上传、公开/下线、删除与灯箱预览，并可通过“允许非管理员上传”控制游客投稿；游客上传默认不会直接公开。
 
 <p align="center">
   <img src="docs/admin-dark.jpg" alt="管理后台深色主题" width="100%">
@@ -102,9 +105,16 @@ https://github.com/settings/tokens/new?description=Profile%20Card%20(read-only)
 | `GET /api` | 输出动态 SVG，单张卡片 |
 | `GET /api/card`、`/card.svg`、`/profile.svg` | SVG 路由别名 |
 | `GET /api/summary` | 卡片对应的 JSON 指标，开启 CORS |
+| `GET /api/images` | 获取已公开图片库，供前台选图 |
+| `POST /api/images` | 游客上传 WebP，需管理员开放投稿；默认进入待审核状态 |
+| `GET /images/:id.webp` | 读取已公开图片；未公开图片仅管理员会话可访问 |
 | `GET /api/site` | 当前实例的公开模式、默认用户与主题元数据 |
 | `GET /api/health`、`/health` | 健康检查 |
 | `GET /admin` | 中文管理后台 |
+| `GET /admin/api/images` | 管理员读取完整图片库与统计 |
+| `POST /admin/api/images` | 管理员上传图片并直接公开 |
+| `PATCH /admin/api/images/:id` | 管理员公开、下线或修改图片名称 |
+| `DELETE /admin/api/images/:id` | 管理员删除图片 |
 
 ### 查询参数
 
@@ -113,9 +123,7 @@ https://github.com/settings/tokens/new?description=Profile%20Card%20(read-only)
 | `username` / `user` / `url` | `DearLicy` | GitHub 用户名、`@username` 或主页 URL |
 | `theme` | `midnight` | `midnight`、`ivory`、`ocean`、`ember`、`graphite`，对应五种不同构图 |
 | `accent` | `%23D6422E` | 六位十六进制强调色，`#` 需要 URL 编码 |
-| `bg` | `https%3A%2F%2F...` | 背景图源。默认仅作为前台处理提示，不会让服务器抓取 |
-| `bgData` | `UklGR...` | 浏览器压缩后的 URL-safe WebP 数据，默认背景渲染方式 |
-| `photo` | `https%3A%2F%2F...` | 自定义头像 URL |
+| `bgImage` | `98a4c823-...` | 图片库中已公开图片的 UUID；旧版 `bg`、`bgData`、`photo` 参数会被忽略 |
 | `mark` | `DEARLICY` | 左上角标识，最多 24 字符 |
 | `h1` / `h2` | `Designing+useful` | 两行标题，最多 42 / 48 字符 |
 | `intro` | `Open+source...` | 简介，最多 120 字符 |
@@ -131,15 +139,14 @@ curl -o card.svg \
   'https://profile.akucb.com/api?username=DearLicy&theme=ocean&accent=%235D86FF&bgTL=0.7&bgTR=0.2&bgBL=0.5&bgBR=0.1'
 ```
 
-### 图片处理
+### 图片处理与图片库
 
-- 前台会先在**用户浏览器**中读取原图，按卡片比例裁切，并自动降低尺寸与质量，直到生成的 WebP 不超过 18 KB。
-- 压缩结果以 base64url 写入 `bgData`，服务端只负责解码为轻量 SVG data URI。服务器不会保存压缩图，也不会代理原图。
-- GitHub README 会经过 Camo 图片代理；当前实现把查询串控制在安全范围，避免长链接被 GitHub 截断。
-- 外部图片必须允许浏览器跨域读取（CORS）。源站禁止跨域、响应过慢或撤回图片时，前台会给出明确错误，而不是生成裂图。
-- `bg` 可保存默认图源；默认实例不会用服务器抓取它。只有 `ALLOW_SERVER_BACKGROUND_FETCH=true` 时才启用旧式服务端回退，这会消耗服务器带宽，不建议开启。
-- 头像会优先使用 GitHub 返回的数据。自定义 `photo` 与受信任图片主机可通过白名单控制；`ALLOW_REMOTE_ASSET_FETCH` 默认关闭，避免把服务端变成任意 URL 代理。
-- 可通过 `ASSET_HOSTS` 追加允许服务端读取的域名，逗号分隔。
+- 前台只从实例图片库选择背景。管理员上传后立即公开；游客上传会先进入待审核状态，由管理员决定是否公开。
+- 图片在**访客浏览器**中完成缩放和 WebP 压缩，单张最大 1 MB。原图不会上传到服务器，服务端只保存压缩后的结果。
+- 图片文件保存在 `data/images/`，索引保存在 `data/image-library.json`，默认每张图片的权限为 `0600`，目录权限为 `0700`。
+- 公开图片通过 `/images/:id.webp` 以一年不可变缓存提供；未公开图片只允许管理员会话读取。
+- SVG 生成时只读取已公开图片并内嵌为 data URI。删除或下线图片后，旧卡片下一次刷新会自动移除该背景。
+- 不再支持背景图片 URL、头像 URL 或 `bgData` inline 数据。头像始终来自 GitHub 返回的数据，避免把服务端变成任意 URL 代理。
 
 ### 缓存策略
 
@@ -175,11 +182,15 @@ curl http://127.0.0.1:3410/health
 
 Compose 默认只监听 `127.0.0.1:3410`。反向代理不在本仓库内提供，请按自己的 Nginx、Caddy、Cloudflare Tunnel 或其他网关方案接入 HTTPS。
 
-网关只需要把请求转发到 `127.0.0.1:3410`，并保留 `Host`、`X-Forwarded-Proto` 与 `X-Forwarded-Host`。如果使用浏览器内嵌背景，还需要让网关允许较长的请求头，否则可能返回 `431 Request Header Fields Too Large`。
+网关只需要把请求转发到 `127.0.0.1:3410`，并保留 `Host`、`X-Forwarded-Proto` 与 `X-Forwarded-Host`。图片上传请求体最大约 1 MB，Nginx 建议配置 `client_max_body_size 2m;`，否则可能返回 `413 Request Entity Too Large`。
 
 ### 备份
 
-需要备份的是 `data/config.json`。其中包含实例配置和加密后的凭据；恢复时必须继续使用相同的 `ADMIN_SECRET`，否则旧凭据无法解密。
+需要备份整个 `data/` 目录：
+
+- `data/config.json`：实例配置与加密后的 GitHub 凭据；恢复时必须继续使用相同的 `ADMIN_SECRET`，否则旧凭据无法解密。
+- `data/image-library.json`：图片索引、来源、审核状态和尺寸信息。
+- `data/images/`：图片库的 WebP 文件。
 
 ## 本地开发
 
@@ -210,6 +221,7 @@ src/
   http.js             HTTP 响应与缓存工具
   runtime.js          实例配置、凭据与访问控制
   handlers/           公开卡片与前台路由
+  handlers/images.js  图片库公开上传、资源路由与管理员接口
   admin/              后台鉴权、路由与配置控制
   github.js           GitHub GraphQL / REST 数据层
   profile-service.js  内存与 Cache API 缓存
@@ -221,9 +233,10 @@ src/
   design-system.js    印刷工作室设计系统
   config.js           主题、布局与卡片参数
   site-config.js      实例配置与访问模式
-  assets.js           图片校验、服务端回退与内嵌数据解码
+  assets.js           图片校验、GitHub 头像读取与内嵌编码
 server/
   site-store.mjs      文件持久化与加密凭据
+  image-store.mjs     WebP 校验、图片文件与索引持久化
   application.mjs     Node HTTP 适配与安全日志
   bootstrap.mjs       进程启动与优雅关闭
   vendor.mjs          Shoelace / Lit 静态资源
@@ -236,9 +249,8 @@ server.mjs            Node 入口
 | --- | --- | --- |
 | `ADMIN_SECRET` | 是 | 管理员登录与凭据加密密钥，至少 24 字符 |
 | `GITHUB_TOKEN` | 否 | 服务端只读 GitHub Token |
-| `ASSET_HOSTS` | 否 | 允许服务端代理的其他图片域名，逗号分隔 |
-| `ALLOW_SERVER_BACKGROUND_FETCH` | 否 | 是否允许服务端抓取 `bg`，默认 `false` |
-| `ALLOW_REMOTE_ASSET_FETCH` | 否 | 是否允许服务端抓取白名单外的头像，默认 `false` |
+| `ASSET_HOSTS` | 否 | 为 GitHub 头像追加受信任域名，逗号分隔 |
+| `ALLOW_REMOTE_ASSET_FETCH` | 否 | 是否允许从默认头像白名单外的 HTTPS 主机读取 GitHub 头像，默认 `false` |
 | `SITE_MODE` | 否 | 首次启动的 `public` / `private` 默认值 |
 | `DEFAULT_USERNAME` | 否 | 首次启动的默认 GitHub 用户 |
 | `PUBLIC_REPO_URL` | 否 | 前台右上角 GitHub 按钮的目标地址 |
@@ -251,7 +263,8 @@ server.mjs            Node 入口
 
 - 不请求、不统计、不展示私有仓库。
 - GitHub Token 不会出现在 HTML、SVG、JSON、日志或 Git 中。
-- 请求日志不会记录 `bgData`、`bg`、`photo` 等查询参数内容。
+- 请求日志不会记录用户名、图片标识、Token 等查询参数内容。
+- 图片上传仅接受有效的 WebP，单张不超过 1 MB；游客上传默认待审核，并按 IP 限制为每小时 8 次。
 - 管理后台 Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动启用 `Secure`。
 - 所有写操作校验 Origin，并带有登录尝试限速。
 - Docker 容器以非 root 用户运行，丢弃 Linux capabilities，根文件系统只读，仅 `/app/data` 和 `/tmp` 可写。

@@ -19,6 +19,7 @@ export function handleStudioPage(request, runtime) {
     origin: url.origin,
     defaultUsername,
     mode: runtime.site.mode,
+    allowPublicUploads: runtime.site.allowPublicUploads,
     repoUrl: runtime.site.repoUrl,
     initialCardConfig: configFromSearchParams(url.searchParams, runtime.site.card),
   });

@@ -1,7 +1,4 @@
-import {
-  fetchImageDataUri,
-  inlineBackgroundData,
-} from "../assets.js";
+import { imageDataUri } from "../assets.js";
 import { configFromSearchParams } from "../config.js";
 import {
   ProfileInputError,
@@ -28,34 +25,17 @@ function cardConfig(url, site) {
   return configFromSearchParams(url.searchParams, site.card);
 }
 
-function enabledFlag(value) {
-  return String(value ?? "").trim().toLowerCase() === "true";
-}
-
 async function imageContext(config, env, profile) {
   let backgroundSource = "";
-  let avatarSource = profile.avatarDataUri;
-  if (config.backgroundData) {
-    backgroundSource = inlineBackgroundData(config.backgroundData);
-  }
   if (
-    !backgroundSource &&
-    config.backgroundUrl &&
-    enabledFlag(env.ALLOW_SERVER_BACKGROUND_FETCH)
+    config.backgroundImage &&
+    env.SITE_STORE?.images
   ) {
-    backgroundSource =
-      (await fetchImageDataUri(config.backgroundUrl, env, {
-        maxBytes: 8_000_000,
-      })) || "";
-  }
-  if (config.avatarUrl) {
-    avatarSource =
-      (await fetchImageDataUri(config.avatarUrl, env, {
-        maxBytes: 1_500_000,
-      })) || profile.avatarDataUri;
+    const stored = await env.SITE_STORE.images.get(config.backgroundImage);
+    if (stored) backgroundSource = imageDataUri(stored.buffer, stored.image.mime);
   }
   return {
-    profile: { ...profile, avatarDataUri: avatarSource },
+    profile,
     backgroundSource,
   };
 }

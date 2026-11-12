@@ -5,6 +5,7 @@ import {
   THEME_TOGGLE,
 } from "./design-system.js";
 import { STUDIO_CSS } from "./studio-ui.js";
+import { IMAGE_CLIENT_SCRIPT } from "./image-client.js";
 import {
   COMPONENT_THEME_LINKS,
   FAVICON_LINK,
@@ -66,6 +67,7 @@ export function renderStudioPage({
   origin,
   defaultUsername = "DearLicy",
   mode = "public",
+  allowPublicUploads = false,
   repoUrl = "https://github.com/DearLicy/dearlicy-profile-card",
   initialCardConfig = DEFAULT_CARD_CONFIG,
 }) {
@@ -118,7 +120,7 @@ export function renderStudioPage({
       <sl-badge class="compact-badge" pill>${modeLabel}</sl-badge>
     </div>
     <div class="top-actions">
-      <sl-button class="github-link" href="${safeRepoUrl}" target="_blank" rel="noreferrer">
+      <sl-button class="github-link" href="${safeRepoUrl}" target="_blank" rel="noreferrer" aria-label="打开 GitHub 仓库">
         <span slot="prefix">${ICONS.github}</span>
         <span class="github-label">GitHub 仓库</span>
         <span slot="suffix" class="external-arrow">${ICONS.external}</span>
@@ -225,9 +227,6 @@ export function renderStudioPage({
                         <div class="accent-copy"><strong>卡片强调色</strong><small id="accentValue">${escapeHtml(initial.accent || "跟随主题")}</small></div>
                         <sl-button id="resetAccent" size="small">恢复默认</sl-button>
                       </div>
-                      <div class="field-stack" style="margin-top:15px">
-                        ${field({ id: "avatarUrl", label: "自定义头像 URL", value: initial.avatarUrl, maxlength: 2048, placeholder: "https://…（留空使用 GitHub 头像）" })}
-                      </div>
                     </div>
                   </sl-tab-panel>
                   <sl-tab-panel name="copy">
@@ -244,14 +243,20 @@ export function renderStudioPage({
                   </sl-tab-panel>
                   <sl-tab-panel name="canvas">
                     <div class="editor-body">
-                      ${field({ id: "backgroundUrl", label: "背景图片 URL", value: initial.backgroundUrl, maxlength: 2048, placeholder: "https://images.unsplash.com/…" })}
-                      <div class="background-job" id="backgroundJob">
-                        <div class="background-status-row">
-                          <sl-badge id="backgroundStatus" pill>等待背景图片</sl-badge>
-                          <span class="background-percent" id="backgroundPercent">0%</span>
+                      <div class="group-label library-title"><span>图片库背景</span><small>单张最大 1 MB</small></div>
+                      <div class="selected-image-frame" id="selectedImageFrame">
+                        <img id="selectedImagePreview" alt="" hidden>
+                        <div class="selected-image-empty" id="selectedImageEmpty">
+                          <span class="selected-image-icon">${ICONS.image}</span>
+                          <span>尚未选择图片库背景</span>
                         </div>
-                        <sl-progress-bar id="backgroundProgress" value="0" label="背景图片处理进度"></sl-progress-bar>
-                        <small class="background-help" id="backgroundHelp">浏览器抓取、压缩为 ≤18 KB WebP 并写入卡片链接，不上传服务器。</small>
+                      </div>
+                      <div class="library-selection-actions">
+                        <sl-button id="openImageDrawer" variant="primary">
+                          <span slot="prefix">${ICONS.image}</span>
+                          <span>选择或上传图片</span>
+                        </sl-button>
+                        <sl-button id="clearLibraryImage" hidden>移除背景</sl-button>
                       </div>
                       <div class="group-label"><span>四角透明度</span><small>IMAGE MASK</small></div>
                       <div class="corner-map">
@@ -297,9 +302,37 @@ export function renderStudioPage({
     </section>
   </main>
 
+  <sl-drawer id="imageDrawer" label="选择图片库背景" placement="end" class="image-drawer">
+    <div class="image-drawer-head">
+      <div><strong>公开图片库</strong><small id="librarySummary">正在读取图片库…</small></div>
+    </div>
+    <div class="library-toolbar">
+      <div class="library-copy"><strong>选择背景</strong><small>点选图片后立即应用。</small></div>
+      <sl-button id="uploadImageButton" size="small" ${allowPublicUploads ? "" : "hidden"}>
+        <span slot="prefix">${ICONS.upload}</span>
+        <span>上传图片</span>
+      </sl-button>
+    </div>
+    <div class="background-job image-upload-job" id="imageUploadJob" hidden>
+      <div class="background-status-row">
+        <sl-badge id="imageUploadStatus" pill>准备上传</sl-badge>
+        <span class="background-percent" id="imageUploadPercent">0%</span>
+      </div>
+      <sl-progress-bar id="imageUploadProgress" value="0" label="图片上传处理进度"></sl-progress-bar>
+      <small class="background-help" id="imageUploadHelp">浏览器会先压缩到 1 MB 以内。</small>
+    </div>
+    <div class="image-library" id="imageLibrary" aria-live="polite">
+      <sl-skeleton effect="sheen" class="library-skeleton"></sl-skeleton>
+      <sl-skeleton effect="sheen" class="library-skeleton"></sl-skeleton>
+      <sl-skeleton effect="sheen" class="library-skeleton"></sl-skeleton>
+    </div>
+    <p class="library-empty" id="imageLibraryEmpty" hidden>图片库暂时没有管理员公开的图片。</p>
+  </sl-drawer>
+
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
   <script type="module">
     ${SHOELACE_IMPORTS}
+    ${IMAGE_CLIENT_SCRIPT}
 
     function syncComponentTheme() {
       const light = document.documentElement.dataset.theme === "light";
@@ -312,6 +345,7 @@ export function renderStudioPage({
     const initialUsername = ${json(defaultUsername)};
     const origin = ${json(baseOrigin)};
     const repoUrl = ${json(repoUrl)};
+    const initialAllowPublicUploads = ${json(Boolean(allowPublicUploads))};
     const initialConfig = ${json(initial)};
     const themes = ${json(Object.fromEntries(Object.entries(CARD_THEMES).map(([key, theme]) => [key, {
       label: theme.labelZh || theme.label,
@@ -328,11 +362,11 @@ export function renderStudioPage({
       config: initialConfig,
       theme: document.documentElement.dataset.theme || "dark",
       previewTimer: null,
-      backgroundTimer: null,
-      backgroundController: null,
-      backgroundToken: 0,
-      backgroundData: initialConfig.backgroundData || "",
-      backgroundSource: initialConfig.backgroundUrl || "",
+      library: [],
+      libraryLoaded: false,
+      libraryError: "",
+      libraryAllowPublic: Boolean(initialAllowPublicUploads),
+      uploadingImage: false,
     };
     const elements = {
       appShell: document.getElementById("appShell"),
@@ -358,19 +392,27 @@ export function renderStudioPage({
       accent: document.getElementById("accentInput"),
       accentValue: document.getElementById("accentValue"),
       resetAccent: document.getElementById("resetAccent"),
-      avatarUrl: document.getElementById("avatarUrl"),
       mark: document.getElementById("markInput"),
       badge: document.getElementById("badgeInput"),
       headlineOne: document.getElementById("headlineOne"),
       headlineTwo: document.getElementById("headlineTwo"),
       intro: document.getElementById("introInput"),
       footerNote: document.getElementById("footerNote"),
-      backgroundUrl: document.getElementById("backgroundUrl"),
-      backgroundJob: document.getElementById("backgroundJob"),
-      backgroundStatus: document.getElementById("backgroundStatus"),
-      backgroundProgress: document.getElementById("backgroundProgress"),
-      backgroundPercent: document.getElementById("backgroundPercent"),
-      backgroundHelp: document.getElementById("backgroundHelp"),
+      imageDrawer: document.getElementById("imageDrawer"),
+      openImageDrawer: document.getElementById("openImageDrawer"),
+      imageLibrary: document.getElementById("imageLibrary"),
+      imageLibraryEmpty: document.getElementById("imageLibraryEmpty"),
+      librarySummary: document.getElementById("librarySummary"),
+      selectedImageFrame: document.getElementById("selectedImageFrame"),
+      selectedImagePreview: document.getElementById("selectedImagePreview"),
+      selectedImageEmpty: document.getElementById("selectedImageEmpty"),
+      uploadImageButton: document.getElementById("uploadImageButton"),
+      clearLibraryImage: document.getElementById("clearLibraryImage"),
+      imageUploadJob: document.getElementById("imageUploadJob"),
+      imageUploadStatus: document.getElementById("imageUploadStatus"),
+      imageUploadProgress: document.getElementById("imageUploadProgress"),
+      imageUploadPercent: document.getElementById("imageUploadPercent"),
+      imageUploadHelp: document.getElementById("imageUploadHelp"),
       resetBackground: document.getElementById("resetBackground"),
       embed: document.getElementById("embedCode"),
       endpoint: document.getElementById("endpointValue"),
@@ -481,9 +523,7 @@ export function renderStudioPage({
       return {
         theme: state.config.theme,
         accent: state.config.accent || "",
-        backgroundUrl: (state.config.backgroundUrl || "").trim(),
-        backgroundData: state.config.backgroundData || "",
-        avatarUrl: (state.config.avatarUrl || "").trim(),
+        backgroundImage: state.config.backgroundImage || "",
         mark: (state.config.mark || "").trim(),
         headlineOne: (state.config.headlineOne || "").trim(),
         headlineTwo: (state.config.headlineTwo || "").trim(),
@@ -498,14 +538,12 @@ export function renderStudioPage({
         },
       };
     }
-    function configQuery({ includeBackgroundSource = true } = {}) {
+    function configQuery() {
       const config = cleanConfig();
       const query = new URLSearchParams();
       query.set("theme", config.theme);
       if (config.accent) query.set("accent", config.accent);
-      if (config.avatarUrl) query.set("photo", config.avatarUrl);
-      if (config.backgroundUrl && includeBackgroundSource) query.set("bg", config.backgroundUrl);
-      if (config.backgroundData) query.set("bgData", config.backgroundData);
+      if (config.backgroundImage) query.set("bgImage", config.backgroundImage);
       if (config.mark) query.set("mark", config.mark);
       if (config.headlineOne) query.set("h1", config.headlineOne);
       if (config.headlineTwo) query.set("h2", config.headlineTwo);
@@ -518,7 +556,7 @@ export function renderStudioPage({
       return query.toString();
     }
     function cardEndpoint(username, { refresh = false, cacheBust = false } = {}) {
-      let url = origin + "/api?" + configQuery({ includeBackgroundSource: false }) + "&username=" + encodeURIComponent(username);
+      let url = origin + "/api?" + configQuery() + "&username=" + encodeURIComponent(username);
       if (refresh) url += "&refresh=1";
       if (cacheBust) url += "&v=" + Date.now();
       return url;
@@ -561,278 +599,154 @@ export function renderStudioPage({
       input.value = percent;
       output.textContent = percent + "%";
     }
-    function setBackgroundStatus(label, variant = "neutral", percent = 0, help = "") {
-      const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
-      elements.backgroundStatus.textContent = label;
-      elements.backgroundStatus.variant = variant;
-      elements.backgroundProgress.value = value;
-      elements.backgroundPercent.textContent = value + "%";
-      elements.backgroundJob.classList.toggle("is-complete", value === 100 && variant === "success");
-      elements.backgroundJob.classList.toggle("is-error", variant === "danger");
-      if (help) elements.backgroundHelp.textContent = help;
+    function setImageUploadStatus(label, variant, value, help) {
+      elements.imageUploadStatus.textContent = label;
+      elements.imageUploadStatus.variant = variant;
+      elements.imageUploadProgress.value = value;
+      elements.imageUploadPercent.textContent = value + "%";
+      elements.imageUploadJob.classList.toggle("is-complete", value === 100 && variant === "success");
+      elements.imageUploadJob.classList.toggle("is-error", variant === "danger");
+      if (help) elements.imageUploadHelp.textContent = help;
     }
-    function canvasBlob(canvas, type, quality) {
-      return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-    }
-    async function decodeImage(blob) {
-      if (typeof createImageBitmap === "function") {
-        const bitmap = await createImageBitmap(blob);
-        return {
-          source: bitmap,
-          width: bitmap.width,
-          height: bitmap.height,
-          release() { bitmap.close?.(); },
-        };
+    function syncLibrarySelection() {
+      const active = state.config.backgroundImage || "";
+      const image = state.library.find((entry) => entry.id === active);
+      elements.imageLibrary.querySelectorAll(".library-card").forEach((button) => {
+        const selected = button.dataset.imageId === active;
+        button.classList.toggle("is-selected", selected);
+        button.setAttribute("aria-pressed", selected ? "true" : "false");
+      });
+      if (image) {
+        elements.selectedImagePreview.src = image.url;
+        elements.selectedImagePreview.alt = image.label;
+        elements.selectedImagePreview.hidden = false;
+        elements.selectedImageEmpty.hidden = true;
+        elements.selectedImageFrame.classList.add("has-image");
+      } else {
+        elements.selectedImagePreview.removeAttribute("src");
+        elements.selectedImagePreview.hidden = true;
+        elements.selectedImageEmpty.hidden = false;
+        elements.selectedImageFrame.classList.remove("has-image");
       }
-      const objectUrl = URL.createObjectURL(blob);
-      const image = new Image();
-      image.decoding = "async";
-      image.src = objectUrl;
+      elements.clearLibraryImage.hidden = !active;
+    }
+    function renderImageLibrary() {
+      elements.imageLibrary.replaceChildren();
+      const images = state.library;
+      for (const image of images) {
+        const button = document.createElement("sl-button");
+        button.className = "library-card";
+        button.dataset.imageId = image.id;
+        button.title = image.label;
+        button.setAttribute("aria-label", "使用图片 " + image.label);
+        const preview = document.createElement("img");
+        preview.src = image.url;
+        preview.alt = image.label;
+        preview.loading = "lazy";
+        preview.decoding = "async";
+        button.append(preview);
+        elements.imageLibrary.append(button);
+      }
+      state.libraryLoaded = true;
+      elements.imageLibraryEmpty.hidden = images.length > 0 || !state.libraryLoaded;
+      if (state.libraryError) {
+        elements.imageLibraryEmpty.hidden = false;
+        elements.imageLibraryEmpty.textContent = state.libraryError;
+      } else if (!images.length && state.libraryLoaded) {
+        elements.imageLibraryEmpty.hidden = false;
+        elements.imageLibraryEmpty.textContent = state.libraryAllowPublic
+          ? "还没有公开图片。你可以上传一张，管理员审核后会出现在这里。"
+          : "图片库暂时没有管理员公开的图片。";
+      }
+      elements.uploadImageButton.hidden = !state.libraryAllowPublic;
+      elements.librarySummary.textContent = images.length
+        ? images.length + " 张已公开图片" + (state.libraryAllowPublic ? " · 游客已开放上传审核" : " · 仅管理员可上传")
+        : state.libraryAllowPublic
+          ? "暂无公开图片 · 游客可上传等待审核"
+          : "暂无公开图片 · 管理员暂未开放上传";
+      syncLibrarySelection();
+    }
+    async function loadImageLibrary() {
       try {
-        await image.decode();
-        return {
-          source: image,
-          width: image.naturalWidth,
-          height: image.naturalHeight,
-          release() { URL.revokeObjectURL(objectUrl); },
-        };
+        const response = await fetch("/api/images", { cache: "no-store" });
+        if (!response.ok) throw new Error("图片库读取失败。");
+        const payload = await response.json();
+        state.library = Array.isArray(payload.images) ? payload.images : [];
+        state.libraryAllowPublic = Boolean(payload.allowPublicUploads);
+        state.libraryError = "";
+        renderImageLibrary();
+      } catch {
+        state.library = [];
+        state.libraryError = "图片库暂时不可用，请稍后刷新。";
+        renderImageLibrary();
+      }
+    }
+    async function uploadLibraryBackground() {
+      if (state.uploadingImage) return;
+      if (!state.libraryAllowPublic) {
+        showToast("管理员暂未开放游客上传");
+        return;
+      }
+      const file = await chooseImageFile();
+      if (!file) return;
+      state.uploadingImage = true;
+      elements.imageUploadJob.hidden = false;
+      elements.uploadImageButton.disabled = true;
+      elements.uploadImageButton.loading = true;
+      setImageUploadStatus("读取图片", "neutral", 0, "正在由浏览器读取并压缩，图片不会以原图上传。");
+      try {
+        const compressed = await compressLibraryImage(file, {
+          maxBytes: 980000,
+          onProgress: (value, label) => setImageUploadStatus(label, "neutral", value, "自动压缩到 1 MB 以内，再进行上传。"),
+        });
+        setImageUploadStatus("上传压缩图", "neutral", 88, formatImageBytes(compressed.blob.size) + " WebP · 正在提交到实例图片库。");
+        const payload = await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file) });
+        setImageUploadStatus("已提交审核", "success", 100, payload.message || "管理员发布后其他访客即可使用。");
+        showToast(payload.message || "图片已提交审核");
+        await loadImageLibrary();
       } catch (error) {
-        URL.revokeObjectURL(objectUrl);
-        throw error;
-      }
-    }
-    async function blobToBase64Url(blob) {
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let binary = "";
-      const chunkSize = 0x8000;
-      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(offset, offset + chunkSize));
-      }
-      return btoa(binary)
-        .replaceAll("+", "-")
-        .replaceAll("/", "_")
-        .replace(/=+$/, "");
-    }
-    async function compressBackground(blob, onProgress = () => {}) {
-      if (!String(blob.type || "").startsWith("image/")) {
-        throw new Error("链接返回的不是图片。");
-      }
-      const decoded = await decodeImage(blob);
-      try {
-        const candidateWidths = [720, 600, 480, 380, 300, 240, 180];
-        const qualities = [0.78, 0.62, 0.48, 0.36, 0.28];
-        const targetRatio = 920 / 1360;
-        const sourceRatio = decoded.width / decoded.height;
-        const sourceWidth = sourceRatio > targetRatio ? decoded.height * targetRatio : decoded.width;
-        const sourceHeight = sourceRatio > targetRatio ? decoded.height : decoded.width / targetRatio;
-        const sourceX = Math.max(0, (decoded.width - sourceWidth) / 2);
-        const sourceY = Math.max(0, (decoded.height - sourceHeight) / 2);
-        let lastSize = 0;
-        let step = 0;
-        const totalSteps = candidateWidths.length * qualities.length;
-        for (const width of candidateWidths) {
-          const height = Math.round(width / targetRatio);
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const context = canvas.getContext("2d", { alpha: false });
-          if (!context) throw new Error("浏览器无法创建图片画布。");
-          context.imageSmoothingEnabled = true;
-          context.imageSmoothingQuality = "high";
-          context.drawImage(decoded.source, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
-          for (const quality of qualities) {
-            step += 1;
-            onProgress(50 + Math.round((step / totalSteps) * 38), "正在压缩 WebP " + width + "×" + height + " · Q" + Math.round(quality * 100));
-            const compressed = await canvasBlob(canvas, "image/webp", quality);
-            lastSize = compressed?.size || 0;
-            if (compressed?.type !== "image/webp") {
-              throw new Error("当前浏览器不支持 WebP 压缩。");
-            }
-            if (compressed.size <= 18_000) {
-              return { blob: compressed, width, height };
-            }
-          }
-        }
-        throw new Error("为保证 GitHub 链接可用，压缩后仍超过 18 KB（最后为 " + Math.max(1, Math.round(lastSize / 1024)) + " KB）。");
+        setImageUploadStatus("上传失败", "danger", 0, error instanceof Error ? error.message : "图片上传失败。");
+        showToast(error instanceof Error ? error.message : "图片上传失败");
       } finally {
-        decoded.release();
+        state.uploadingImage = false;
+        elements.uploadImageButton.disabled = false;
+        elements.uploadImageButton.loading = false;
       }
     }
-    function clearBackgroundData(message, variant = "danger") {
-      state.config.backgroundData = "";
-      state.backgroundData = "";
-      setBackgroundStatus(message, variant, 0, "未写入卡片链接，服务器未保存图片。");
+    function useLibraryImage(image) {
+      state.config.backgroundImage = image.id;
+      syncLibrarySelection();
       refreshOutputs();
       schedulePreview();
+      elements.imageDrawer.hide();
+      showToast("已选择图片库背景");
     }
-    async function processBackground(url) {
-      const token = ++state.backgroundToken;
-      clearTimeout(state.backgroundTimer);
-      state.backgroundTimer = null;
-      if (state.backgroundController) state.backgroundController.abort();
-      state.backgroundController = null;
-      const normalized = String(url || "").trim();
-      if (!normalized) {
-        state.config.backgroundData = "";
-        state.backgroundData = "";
-        state.backgroundSource = "";
-        setBackgroundStatus("等待背景图片", "neutral", 0, "粘贴公开 HTTPS 图片链接后自动开始。");
-        refreshOutputs();
-        schedulePreview();
-        return;
-      }
-      if (normalized === state.backgroundSource && state.backgroundData) {
-        state.config.backgroundData = state.backgroundData;
-        setBackgroundStatus("已完成", "success", 100, "压缩后的图片已经写入卡片链接。");
-        refreshOutputs();
-        schedulePreview();
-        return;
-      }
-      let parsed;
-      try {
-        parsed = new URL(normalized);
-      } catch {
-        setBackgroundStatus("链接格式错误", "danger", 0, "请输入完整的 HTTPS 图片链接。");
-        return;
-      }
-      if (parsed.protocol !== "https:") {
-        setBackgroundStatus("协议不受支持", "danger", 0, "背景图片必须使用 HTTPS。");
-        return;
-      }
-      state.config.backgroundData = "";
-      state.backgroundData = "";
-      state.backgroundSource = normalized;
-      setBackgroundStatus("读取原图", "neutral", 8, "正在从图片源直接下载，不经过本站服务器。");
-      const controller = new AbortController();
-      state.backgroundController = controller;
-      const startedAt = Date.now();
-      const waitTimer = setInterval(() => {
-        if (token !== state.backgroundToken) return;
-        const seconds = Math.floor((Date.now() - startedAt) / 1000);
-        setBackgroundStatus("等待图片源", "neutral", 8 + Math.min(3, Math.floor(seconds / 10)), "图片服务器还没有响应 · 已等待 " + seconds + " 秒");
-      }, 2_000);
-      const timeoutTimer = setTimeout(() => controller.abort(), 45_000);
-      try {
-        const response = await fetch(parsed.href, {
-          mode: "cors",
-          credentials: "omit",
-          referrerPolicy: "no-referrer",
-          cache: "force-cache",
-          signal: controller.signal,
-        });
-        clearInterval(waitTimer);
-        if (!response.ok) throw new Error("图片服务器返回 " + response.status);
-        const declared = Number(response.headers.get("Content-Length") || 0);
-        if (declared > 32_000_000) throw new Error("原图超过浏览器处理上限。");
-        if (!String(response.headers.get("Content-Type") || "").startsWith("image/")) {
-          throw new Error("该链接不是图片资源。");
-        }
-        let source;
-        if (response.body?.getReader) {
-          const reader = response.body.getReader();
-          const chunks = [];
-          let received = 0;
-          let lastPercent = -1;
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            received += value.byteLength;
-            const percent = declared
-              ? 12 + Math.floor((received / declared) * 30)
-              : Math.min(40, 12 + chunks.length * 4);
-            if (percent !== lastPercent) {
-              lastPercent = percent;
-              setBackgroundStatus(
-                "下载原图",
-                "neutral",
-                percent,
-                "已读取 " + Math.max(1, Math.round(received / 1024)) + " KB" + (declared ? " / " + Math.round(declared / 1024) + " KB" : ""),
-              );
-            }
-          }
-          source = new Blob(chunks, { type: response.headers.get("Content-Type") || "application/octet-stream" });
-        } else {
-          source = await response.blob();
-        }
-        if (source.size > 32_000_000) throw new Error("原图超过浏览器处理上限。");
-        if (token !== state.backgroundToken) return;
-        setBackgroundStatus("解码图片", "neutral", 46, "浏览器正在读取尺寸与像素数据。");
-        const compressed = await compressBackground(source, (percent, label) => {
-          if (token === state.backgroundToken) {
-            setBackgroundStatus(label, "neutral", percent, "自动降低尺寸与质量，避免 GitHub 截断长链接。");
-          }
-        });
-        if (token !== state.backgroundToken) return;
-        setBackgroundStatus("写入卡片链接", "neutral", 92, "生成 URL-safe WebP 数据，不上传服务器。");
-        const encoded = await blobToBase64Url(compressed.blob);
-        if (token !== state.backgroundToken) return;
-        state.config.backgroundData = encoded;
-        state.backgroundData = encoded;
-        state.backgroundSource = normalized;
-        setBackgroundStatus("已完成", "success", 100, "已内嵌 " + compressed.width + "×" + compressed.height + " WebP · " + Math.max(1, Math.round(compressed.blob.size / 1024)) + " KB · 服务器未保存");
-        showToast("背景图片已在浏览器压缩并内嵌");
-        refreshOutputs();
-        schedulePreview();
-      } catch (error) {
-        if (token !== state.backgroundToken) return;
-        if (controller.signal.aborted) {
-          clearBackgroundData("图片读取超时", "danger");
-          showToast("图片源 45 秒内没有响应，请换一个链接或稍后重试");
-          return;
-        }
-        const reason = error instanceof Error ? error.message : "浏览器无法读取图片";
-        const crossOrigin = error instanceof TypeError || /fetch|network|cors/i.test(reason);
-        clearBackgroundData(crossOrigin ? "该图片禁止跨域读取，请换图源" : "背景处理失败", "danger");
-        showToast(reason);
-      } finally {
-        clearInterval(waitTimer);
-        clearTimeout(timeoutTimer);
-        if (state.backgroundController === controller) state.backgroundController = null;
-      }
-    }
-    function scheduleBackground(url, delay = 650) {
-      state.backgroundToken += 1;
-      clearTimeout(state.backgroundTimer);
-      state.backgroundSource = String(url || "").trim();
-      state.backgroundData = "";
-      state.config.backgroundData = "";
-      if (!state.backgroundSource) {
-        setBackgroundStatus("等待背景图片", "neutral", 0, "粘贴公开 HTTPS 图片链接后自动开始。");
-        return;
-      }
-      setBackgroundStatus("准备处理", "neutral", 0, "将在浏览器中读取、压缩并写入链接。");
-      state.backgroundTimer = setTimeout(() => processBackground(state.backgroundSource), delay);
+    function clearLibraryImage() {
+      state.config.backgroundImage = "";
+      syncLibrarySelection();
+      refreshOutputs();
+      schedulePreview();
+      showToast("已移除图片库背景");
     }
     function hydrateControls() {
       const theme = themes[state.config.theme] || themes.midnight;
       elements.accent.value = state.config.accent || theme.colors.accent;
       elements.accentValue.textContent = state.config.accent || "跟随主题";
-      elements.avatarUrl.value = state.config.avatarUrl || "";
       elements.mark.value = state.config.mark || "";
       elements.badge.value = state.config.badge || "";
       elements.headlineOne.value = state.config.headlineOne || "";
       elements.headlineTwo.value = state.config.headlineTwo || "";
       elements.intro.value = state.config.intro || "";
       elements.footerNote.value = state.config.footerNote || "";
-      elements.backgroundUrl.value = state.config.backgroundUrl || "";
       corners.forEach((key) => setSlider(key, state.config.backgroundCorners[key]));
       syncThemeCards();
       applyAccent(state.config.theme, state.config.accent);
-      state.backgroundData = state.config.backgroundData || "";
-      state.backgroundSource = state.config.backgroundUrl || "";
-      if (state.backgroundData) {
-        setBackgroundStatus("已载入背景", "success", 100, "背景数据已包含在当前卡片链接中。");
-      } else if (state.backgroundSource) {
-        setBackgroundStatus("等待处理", "neutral", 0, "生成卡片时将在浏览器中处理背景图片。");
-      } else {
-        setBackgroundStatus("等待背景图片", "neutral", 0, "粘贴公开 HTTPS 图片链接后自动开始。");
-      }
+      syncLibrarySelection();
     }
     function refreshOutputs() {
       const url = cardEndpoint(state.username, { cacheBust: true });
       elements.openSvg.setAttribute("href", cardEndpoint(state.username));
-      elements.endpoint.textContent = origin + "/api?" + configQuery({ includeBackgroundSource: false }) + "&username=" + encodeURIComponent(state.username);
+      elements.endpoint.textContent = origin + "/api?" + configQuery() + "&username=" + encodeURIComponent(state.username);
       elements.embed.textContent = readmeSnippet();
       elements.configBadge.textContent = themes[state.config.theme]?.label || "自定义主题";
       return url;
@@ -850,14 +764,13 @@ export function renderStudioPage({
       const next = cleanConfig();
       next.theme = state.config.theme;
       next.accent = String(elements.accent.value || "").toUpperCase();
-      next.avatarUrl = elements.avatarUrl.value.trim();
       next.mark = elements.mark.value;
       next.badge = elements.badge.value;
       next.headlineOne = elements.headlineOne.value;
       next.headlineTwo = elements.headlineTwo.value;
       next.intro = elements.intro.value;
       next.footerNote = elements.footerNote.value;
-      next.backgroundUrl = elements.backgroundUrl.value.trim();
+      next.backgroundImage = state.config.backgroundImage || "";
       corners.forEach((key) => {
         next.backgroundCorners[key] = Number(document.getElementById("bg" + key.toUpperCase()).value) / 100;
       });
@@ -977,9 +890,6 @@ export function renderStudioPage({
       state.summary = null;
       setMetricSkeleton(true);
       elements.sync.textContent = "正在获取 GitHub 数据…";
-      if (state.config.backgroundUrl && !state.config.backgroundData) {
-        scheduleBackground(state.config.backgroundUrl, 0);
-      }
       loadSummary({ username, setCard: true, enterResult: true });
     }
     function isEditing() {
@@ -1036,21 +946,12 @@ export function renderStudioPage({
       refreshOutputs();
       schedulePreview();
     });
-    [elements.avatarUrl, elements.mark, elements.badge, elements.headlineOne, elements.headlineTwo, elements.intro, elements.footerNote].forEach((input) => {
+    [elements.mark, elements.badge, elements.headlineOne, elements.headlineTwo, elements.intro, elements.footerNote].forEach((input) => {
       input.addEventListener("sl-input", () => {
         readControls();
         refreshOutputs();
         schedulePreview();
       });
-    });
-    elements.backgroundUrl.addEventListener("sl-input", () => {
-      const source = elements.backgroundUrl.value.trim();
-      state.config.backgroundUrl = source;
-      state.config.backgroundData = "";
-      state.backgroundData = "";
-      refreshOutputs();
-      schedulePreview();
-      scheduleBackground(source);
     });
     corners.forEach((key) => {
       const slider = document.getElementById("bg" + key.toUpperCase());
@@ -1068,6 +969,20 @@ export function renderStudioPage({
       schedulePreview();
       showToast("已恢复默认四角透明度");
     });
+    elements.uploadImageButton.addEventListener("click", uploadLibraryBackground);
+    elements.clearLibraryImage.addEventListener("click", clearLibraryImage);
+    elements.openImageDrawer.addEventListener("click", () => {
+      elements.imageDrawer.show();
+      loadImageLibrary();
+    });
+    elements.imageLibrary.addEventListener("click", (event) => {
+      const card = event
+        .composedPath()
+        .find((node) => node?.classList?.contains("library-card"));
+      if (!card) return;
+      const image = state.library.find((entry) => entry.id === card.dataset.imageId);
+      if (image) useLibraryImage(image);
+    });
     document.addEventListener("keydown", (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey || isEditing()) return;
       const inResult = elements.appShell.dataset.view === "result";
@@ -1082,6 +997,7 @@ export function renderStudioPage({
 
     hydrateControls();
     refreshOutputs();
+    loadImageLibrary();
     showLanding();
   </script>
 </body>

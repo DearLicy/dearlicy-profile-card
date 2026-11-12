@@ -116,6 +116,7 @@ export async function updateConfig(request, env, store) {
 
   const nextSite = normalizeSiteConfig({
     mode: body.mode,
+    allowPublicUploads: body.allowPublicUploads,
     defaultUsername: body.defaultUsername,
     allowedUsers: body.allowedUsers,
     repoUrl: body.repoUrl,

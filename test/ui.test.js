@@ -49,7 +49,20 @@ test("studio and admin screens use the shared component system", () => {
     /id="bgTLName"[\s\S]*id="bgTRName"[\s\S]*id="bgBLName"[\s\S]*id="bgBRName"/,
   );
   assert.match(studio, /const corners = \["tl", "tr", "bl", "br"\]/);
-  assert.match(studio, /id="backgroundProgress" value="0"/);
+  assert.match(studio, /id="uploadImageButton"/);
+  assert.match(studio, /id="imageLibrary"/);
+  assert.match(studio, /id="imageUploadProgress" value="0"/);
+  assert.match(studio, /<sl-drawer id="imageDrawer"/);
+  assert.match(studio, /id="openImageDrawer"/);
+  assert.match(studio, /id="selectedImagePreview"/);
+  assert.match(studio, /column-count: 2/);
+  assert.match(studio, /\.image-drawer::part\(panel\) \{ background: var\(--canvas\); \}/);
+  assert.match(studio, /\.github-link::part\(label\) \{ display: none; \}/);
+  assert.doesNotMatch(studio, /图片会完整显示|不再裁切成长条|瀑布流预览/);
+  assert.doesNotMatch(studio, /library-card-meta/);
+  assert.match(studio, /shoelace\/components\/drawer\/drawer\.js/);
+  assert.match(studio, /图片库/);
+  assert.doesNotMatch(studio, /背景图片 URL|自定义头像 URL|id="avatarUrl"|id="backgroundUrl"/);
   assert.match(
     studio,
     /\.editor-tabs::part\(tabs\) \{ border-bottom: 0;/,
@@ -68,6 +81,16 @@ test("studio and admin screens use the shared component system", () => {
     /id="bgTLName"[\s\S]*id="bgTRName"[\s\S]*id="bgBLName"[\s\S]*id="bgBRName"/,
   );
   assert.match(dashboard, /const corners = \["tl", "tr", "bl", "br"\]/);
+  assert.match(dashboard, /id="allowPublicUploads"/);
+  assert.match(dashboard, /id="adminImageGrid"/);
+  assert.match(dashboard, /id="imageLightboxDialog"/);
+  assert.match(dashboard, /id="imageLightboxImage"/);
+  assert.match(dashboard, /admin-image-preview/);
+  assert.match(dashboard, /object-fit: contain/);
+  assert.match(dashboard, /<sl-dialog id="imageDeleteDialog"/);
+  assert.match(dashboard, /shoelace\/components\/dialog\/dialog\.js/);
+  assert.match(dashboard, /图片库/);
+  assert.doesNotMatch(dashboard, /背景图片 URL|自定义头像 URL|id="avatarUrl"|id="backgroundUrl"/);
   assert.match(dashboard, /"accent":"#E8442A"/);
   assert.doesNotMatch(dashboard, /token-help::part\(summary\) \{ display: flex/);
 });
