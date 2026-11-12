@@ -1,0 +1,21 @@
+{
+  "name": "dearlicy-profile-card",
+  "version": "1.0.0",
+  "description": "A dynamic, customizable GitHub profile card rendered as a single animated SVG.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.js",
+    "render": "node scripts/render-local.mjs",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
