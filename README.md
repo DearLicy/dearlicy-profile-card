@@ -173,20 +173,9 @@ docker compose up -d --build
 curl http://127.0.0.1:3410/health
 ```
 
-Compose 默认只监听 `127.0.0.1:3410`。请通过 Nginx、Caddy 或 Cloudflare Tunnel 对外提供 HTTPS。
+Compose 默认只监听 `127.0.0.1:3410`。反向代理不在本仓库内提供，请按自己的 Nginx、Caddy、Cloudflare Tunnel 或其他网关方案接入 HTTPS。
 
-仓库包含 [`deploy/nginx.conf`](deploy/nginx.conf)。反向代理至少需要：
-
-```nginx
-proxy_set_header Host $host;
-proxy_set_header X-Forwarded-Proto $scheme;
-proxy_set_header X-Forwarded-Host $host;
-proxy_set_header X-Real-IP $remote_addr;
-client_header_buffer_size 32k;
-large_client_header_buffers 4 64k;
-```
-
-后两项用于容纳浏览器内嵌背景产生的长查询串；缺少它们时，反向代理可能直接返回 `431 Request Header Fields Too Large`。
+网关只需要把请求转发到 `127.0.0.1:3410`，并保留 `Host`、`X-Forwarded-Proto` 与 `X-Forwarded-Host`。如果使用浏览器内嵌背景，还需要让网关允许较长的请求头，否则可能返回 `431 Request Header Fields Too Large`。
 
 ### 备份
 

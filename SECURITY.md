@@ -26,9 +26,9 @@ private repository data in an issue.
   outside the trusted host allowlist is disabled unless
   `ALLOW_REMOTE_ASSET_FETCH=true`. Enabling either option increases bandwidth
   use and the outbound-request attack surface.
-- Reverse proxies must allow the bounded `bgData` query string. The included
-  Nginx example configures 32 KB request-header buffers, and the Node adapter
-  caps headers at 64 KB. Request logs redact background and avatar parameters.
+- Reverse proxies must allow the bounded `bgData` query string. The Node adapter
+  caps headers at 64 KB; gateway configuration is deployment-owned. Request
+  logs redact background and avatar parameters.
 
 Run the service behind HTTPS in production. Keep the Docker port bound to
 `127.0.0.1` and expose it through a reverse proxy.
