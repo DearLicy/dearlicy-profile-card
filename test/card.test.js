@@ -71,10 +71,75 @@ test("renders valid, escaped animated SVG for all themes", () => {
   assert.match(escaped, /&lt;unsafe &amp; text&gt;/);
 });
 
+test("keeps profile data when a custom background layer is enabled", () => {
+  for (const theme of ["midnight", "ivory", "ocean", "ember", "graphite"]) {
+    const svg = renderProfileCard(
+      profile,
+      {
+        theme,
+        backgroundCorners: { tl: 0.5, tr: 0.24, br: 0.38, bl: 0.16 },
+      },
+      {
+        backgroundDataUri:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ",
+      },
+    );
+    assert.match(svg, /The Octocat/);
+    assert.match(svg, /@?Octocat/i);
+    assert.match(svg, /31\.4 \/ 100/);
+    assert.match(svg, /<image /);
+    assert.match(svg, /mask="url\(#/);
+    assert.match(svg, /<\/svg>$/);
+  }
+});
+
+test("each theme has a structurally distinct composition and motion system", () => {
+  const signatures = {
+    midnight: ["ORBITAL PROFILE / LIVE", "mo-halo", "GITHUB / LIVE SNAPSHOT"],
+    ivory: ["ISSUE 01 / PROFILE", "ed-shine", "PROFILE INDEX"],
+    ocean: ["SESSION 01 / LIVE", "tc-rain", "$ stats --snapshot"],
+    ember: ["POSTER / 01", "em-sun", "LANGUAGE SIGNAL"],
+    graphite: ["PROFILE / 05", "sw-frame", "LANGUAGE / DISTRIBUTION"],
+  };
+  for (const [theme, markers] of Object.entries(signatures)) {
+    const svg = renderProfileCard(profile, { theme });
+    for (const marker of markers) assert.ok(svg.includes(marker), `${theme}: ${marker}`);
+  }
+});
+
+test("long custom copy is bounded before it reaches the card edge", () => {
+  for (const theme of ["midnight", "ivory", "ocean", "ember", "graphite"]) {
+    const svg = renderProfileCard(
+      {
+        ...profile,
+        topRepositories: [
+          { name: "repository-".repeat(14), stars: 100 },
+          { name: "spoon-knife", stars: 23 },
+        ],
+      },
+      {
+        theme,
+        headlineOne: "W".repeat(42),
+        headlineTwo: "M".repeat(48),
+        intro: "中".repeat(120),
+        badge: "状态徽标".repeat(16),
+        footerNote: "页脚备注".repeat(16),
+      },
+    );
+    assert.match(svg, /…/);
+    assert.ok(!svg.includes("W".repeat(42)));
+    assert.ok(!svg.includes("M".repeat(48)));
+    assert.ok(!svg.includes("中".repeat(120)));
+    assert.ok(!svg.includes("状态徽标".repeat(16)));
+    assert.ok(!svg.includes("页脚备注".repeat(16)));
+    assert.ok(!svg.includes("repository-".repeat(14)));
+  }
+});
+
 test("error cards respect the selected theme", () => {
   const svg = renderErrorCard({ title: "Unavailable" }, { theme: "ivory" });
   assert.match(svg, /Unavailable/);
-  assert.match(svg, /#F8F4EC/);
+  assert.match(svg, /#F7F2E8/);
 });
 
 test("site access mode only permits configured profiles in private mode", () => {

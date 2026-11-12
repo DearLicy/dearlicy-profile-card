@@ -18,8 +18,17 @@ private repository data in an issue.
   session. Login attempts are rate-limited in memory.
 - The card endpoint only returns aggregate public GitHub data. GraphQL queries
   explicitly request public repositories.
-- Background and avatar URLs must use HTTPS. Known image hosts are fetched and
-  converted to data URIs; other HTTPS URLs are embedded directly in the SVG.
+- Backgrounds are compressed in the visitor's browser and sent as a bounded
+  `bgData` value. The server decodes at most 18 KB and does not proxy or store
+  the original image.
+- `bg` and `photo` URLs must use HTTPS. Server-side background fetching is
+  disabled unless `ALLOW_SERVER_BACKGROUND_FETCH=true`; remote avatar fetching
+  outside the trusted host allowlist is disabled unless
+  `ALLOW_REMOTE_ASSET_FETCH=true`. Enabling either option increases bandwidth
+  use and the outbound-request attack surface.
+- Reverse proxies must allow the bounded `bgData` query string. The included
+  Nginx example configures 32 KB request-header buffers, and the Node adapter
+  caps headers at 64 KB. Request logs redact background and avatar parameters.
 
 Run the service behind HTTPS in production. Keep the Docker port bound to
 `127.0.0.1` and expose it through a reverse proxy.

@@ -99,6 +99,39 @@ export class FileSiteStore {
     return this.getPublicConfig();
   }
 
+  async updateConfigWithSecret(
+    input = {},
+    { action = "keep", name = "githubToken", value = "" } = {},
+  ) {
+    if (name !== "githubToken") {
+      throw new Error("Unsupported secret name");
+    }
+    if (!["keep", "set", "clear"].includes(action)) {
+      throw new Error("Unsupported secret action");
+    }
+    const nextConfig = normalizeSiteConfig(input);
+    const sealed =
+      action === "set" ? await sealSecret(value, this.adminSecret) : "";
+    this.writeQueue = this.writeQueue.catch(() => undefined).then(async () => {
+      const state = await this.load();
+      state.config = {
+        ...nextConfig,
+        updatedAt: new Date().toISOString(),
+      };
+      if (action === "set") {
+        state.secrets[name] = sealed;
+        state.secrets.source = "token";
+      } else if (action === "clear") {
+        state.secrets[name] = "";
+        state.secrets.source = "";
+      }
+      this.loaded = state;
+      await writeState(this.filePath, state);
+    });
+    await this.writeQueue;
+    return this.getPublicConfig();
+  }
+
   async setSecret(name, value) {
     if (name !== "githubToken") {
       throw new Error("Unsupported secret name");

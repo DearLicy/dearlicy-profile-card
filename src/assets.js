@@ -17,6 +17,7 @@ const IMAGE_TYPES = new Set([
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const CACHE_LIMIT = 30;
 const imageCache = new Map();
+const MAX_INLINE_BYTES = 18_000;
 
 function allowedHosts(env) {
   const extra = String(env?.ASSET_HOSTS || "")
@@ -26,14 +27,46 @@ function allowedHosts(env) {
   return new Set([...DEFAULT_ASSET_HOSTS, ...extra]);
 }
 
+function isPrivateHostname(hostname) {
+  const host = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  if (!host) return true;
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.endsWith(".home.arpa") ||
+    host.endsWith(".lan") ||
+    host.endsWith(".test") ||
+    host.endsWith(".invalid") ||
+    host.endsWith(".example")
+  ) {
+    return true;
+  }
+  if (host.includes(":")) return true;
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return true;
+  return false;
+}
+
 export function isAllowedAssetUrl(value, env) {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:") return false;
+    if (url.username || url.password || (url.port && url.port !== "443")) {
+      return false;
+    }
     const hostname = url.hostname.toLowerCase();
-    return [...allowedHosts(env)].some(
+    const trusted = [...allowedHosts(env)].some(
       (host) => hostname === host || hostname.endsWith(`.${host}`),
     );
+    if (trusted) return true;
+    if (String(env?.ALLOW_REMOTE_ASSET_FETCH || "false") !== "true") {
+      return false;
+    }
+    return !isPrivateHostname(hostname);
   } catch {
     return false;
   }
@@ -50,6 +83,42 @@ function toBase64(buffer) {
     );
   }
   return btoa(binary);
+}
+
+export function sniffImageType(bytes) {
+  if (!bytes?.byteLength) return "";
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return "image/png";
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  if (
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  ) {
+    return "image/gif";
+  }
+  return "";
 }
 
 function inferredType(url, contentType) {
@@ -124,6 +193,35 @@ export async function fetchImageDataUri(
     return null;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+export function imageDataUri(buffer, contentType) {
+  const normalized = String(contentType || "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+  if (!IMAGE_TYPES.has(normalized) || !buffer?.byteLength) return "";
+  return `data:${normalized};base64,${toBase64(buffer)}`;
+}
+
+export function inlineBackgroundData(value) {
+  const encoded = String(value || "");
+  if (!encoded || encoded.length % 4 === 1) return "";
+  try {
+    const padded = encoded
+      .replaceAll("-", "+")
+      .replaceAll("_", "/")
+      .padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const bytes = Uint8Array.from(atob(padded), (char) =>
+      char.charCodeAt(0),
+    );
+    if (!bytes.byteLength || bytes.byteLength > MAX_INLINE_BYTES) return "";
+    const contentType = sniffImageType(bytes);
+    if (!contentType) return "";
+    return imageDataUri(bytes, contentType);
+  } catch {
+    return "";
   }
 }
 

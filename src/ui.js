@@ -45,11 +45,11 @@ export const ICONS = {
 };
 
 export const COMPONENT_THEME_LINKS = `
-  <link id="slThemeDark" rel="stylesheet" href="/vendor/shoelace/themes/dark.css">
-  <link id="slThemeLight" rel="stylesheet" href="/vendor/shoelace/themes/light.css" disabled>`;
+  <link id="slThemeLight" rel="stylesheet" href="/vendor/shoelace/themes/light.css">
+  <link id="slThemeDark" rel="stylesheet" href="/vendor/shoelace/themes/dark.css">`;
 
 export const FAVICON_LINK = `
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23cbb9ff'/%3E%3Crect x='17' y='18' width='30' height='28' rx='7' fill='none' stroke='%2317141c' stroke-width='4'/%3E%3Cpath d='M24 27h16M24 34h11' stroke='%2317141c' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">`;
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23d6422e'/%3E%3Crect x='17' y='18' width='30' height='28' rx='7' fill='none' stroke='%231a1714' stroke-width='4'/%3E%3Cpath d='M24 27h16M24 34h11' stroke='%231a1714' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">`;
 
 export const SHOELACE_IMPORT_MAP = `
   <script type="importmap">
@@ -83,6 +83,7 @@ export const SHOELACE_IMPORTS = `
   import "/vendor/shoelace/components/details/details.js";
   import "/vendor/shoelace/components/input/input.js";
   import "/vendor/shoelace/components/option/option.js";
+  import "/vendor/shoelace/components/progress-bar/progress-bar.js";
   import "/vendor/shoelace/components/radio-button/radio-button.js";
   import "/vendor/shoelace/components/radio-group/radio-group.js";
   import "/vendor/shoelace/components/range/range.js";
@@ -101,21 +102,18 @@ export function themeBootScript(storageKey) {
     (() => {
       try {
         const queryTheme = new URLSearchParams(location.search).get("theme");
-        document.documentElement.dataset.theme =
+        const theme =
           queryTheme === "light" || queryTheme === "dark"
             ? queryTheme
             : localStorage.getItem(${json(storageKey)}) || "dark";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.classList.toggle("sl-theme-dark", theme === "dark");
+        document.documentElement.classList.toggle("sl-theme-light", theme === "light");
       } catch {
         document.documentElement.dataset.theme = "dark";
+        document.documentElement.classList.add("sl-theme-dark");
+        document.documentElement.classList.remove("sl-theme-light");
       }
     })();
   </script>`;
-}
-
-export function syncShoelaceTheme() {
-  const light = document.documentElement.dataset.theme === "light";
-  const darkLink = document.getElementById("slThemeDark");
-  const lightLink = document.getElementById("slThemeLight");
-  if (darkLink) darkLink.disabled = light;
-  if (lightLink) lightLink.disabled = !light;
 }

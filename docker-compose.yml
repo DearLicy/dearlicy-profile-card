@@ -12,6 +12,8 @@ services:
       DATA_DIR: /app/data
       ADMIN_SECRET: ${ADMIN_SECRET:?ADMIN_SECRET must be set}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ALLOW_SERVER_BACKGROUND_FETCH: ${ALLOW_SERVER_BACKGROUND_FETCH:-false}
+      ALLOW_REMOTE_ASSET_FETCH: ${ALLOW_REMOTE_ASSET_FETCH:-false}
       DEFAULT_USERNAME: ${DEFAULT_USERNAME:-DearLicy}
       SITE_MODE: ${SITE_MODE:-public}
       PUBLIC_REPO_URL: ${PUBLIC_REPO_URL:-https://github.com/DearLicy/dearlicy-profile-card}
