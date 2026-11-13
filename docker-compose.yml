@@ -3,46 +3,20 @@ services:
     build: .
     container_name: profile-card
     restart: unless-stopped
+    init: true
     ports:
       - "127.0.0.1:3410:3410"
     environment:
       NODE_ENV: production
       PORT: 3410
-      HOST: 0.0.0.0
-      DATA_DIR: /app/data
-      IMAGE_STORAGE_DRIVER: ${IMAGE_STORAGE_DRIVER:-file}
-      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
-      GOOGLE_DRIVE_CLIENT_ID: ${GOOGLE_DRIVE_CLIENT_ID:-}
-      GOOGLE_DRIVE_CLIENT_SECRET: ${GOOGLE_DRIVE_CLIENT_SECRET:-}
-      GOOGLE_DRIVE_REFRESH_TOKEN: ${GOOGLE_DRIVE_REFRESH_TOKEN:-}
-      GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64: ${GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64:-}
-      GOOGLE_DRIVE_SUBJECT: ${GOOGLE_DRIVE_SUBJECT:-}
-      ADMIN_SECRET: ${ADMIN_SECRET:?ADMIN_SECRET must be set}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      ALLOW_REMOTE_ASSET_FETCH: ${ALLOW_REMOTE_ASSET_FETCH:-false}
-      DEFAULT_USERNAME: ${DEFAULT_USERNAME:-DearLicy}
-      SITE_MODE: ${SITE_MODE:-public}
-      PUBLIC_REPO_URL: ${PUBLIC_REPO_URL:-https://github.com/DearLicy/dearlicy-profile-card}
-      ASSET_HOSTS: ${ASSET_HOSTS:-}
+      HOSTNAME: 0.0.0.0
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}
     volumes:
-      - ./data:/app/data
+      - ./data:/data
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
-    tmpfs:
-      - /tmp:size=16m,mode=1777
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:3410/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
     logging:
       driver: json-file
       options:

@@ -1,9 +1,17 @@
 node_modules/
 .wrangler/
 .dev.vars
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
 .env
 .env.google-drive
 data/
 *.tmp
 *.log
+.DS_Store
+AGENTS.md
+tsconfig.tsbuildinfo
 

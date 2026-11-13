@@ -136,6 +136,21 @@ export const CARD_THEMES = {
   },
 };
 
+/**
+ * @typedef {object} CardConfig
+ * @property {string} theme
+ * @property {string} accent
+ * @property {string} backgroundImage
+ * @property {{ tl: number, tr: number, bl: number, br: number }} backgroundCorners
+ * @property {string} mark
+ * @property {string} headlineOne
+ * @property {string} headlineTwo
+ * @property {string} intro
+ * @property {string} badge
+ * @property {string} footerNote
+ */
+
+/** @type {Readonly<CardConfig>} */
 export const DEFAULT_CARD_CONFIG = Object.freeze({
   theme: "midnight",
   accent: "",
@@ -176,6 +191,11 @@ function imageId(value) {
   return IMAGE_ID.test(candidate) ? candidate.toLowerCase() : "";
 }
 
+/**
+ * @param {Partial<CardConfig>} [input]
+ * @param {Partial<CardConfig>} [defaults]
+ * @returns {CardConfig}
+ */
 export function normalizeCardConfig(input = {}, defaults = DEFAULT_CARD_CONFIG) {
   const merged = {
     ...DEFAULT_CARD_CONFIG,
@@ -213,6 +233,11 @@ export function normalizeCardConfig(input = {}, defaults = DEFAULT_CARD_CONFIG) 
   };
 }
 
+/**
+ * @param {URLSearchParams} searchParams
+ * @param {Partial<CardConfig>} [defaults]
+ * @returns {CardConfig}
+ */
 export function configFromSearchParams(searchParams, defaults = DEFAULT_CARD_CONFIG) {
   const current = normalizeCardConfig(defaults);
   const input = {

@@ -14,6 +14,11 @@ function cleanSvg(svg) {
   return svg.replace(/[ \t]+$/gm, "");
 }
 
+/**
+ * @param {unknown} data
+ * @param {Partial<import("./config.js").CardConfig>} [configInput]
+ * @param {{ backgroundDataUri?: string }} [options]
+ */
 export function renderProfileCard(
   data,
   configInput = DEFAULT_CARD_CONFIG,
@@ -29,6 +34,10 @@ export function renderProfileCard(
   );
 }
 
+/**
+ * @param {{ title?: string, message?: string, detail?: string }} [input]
+ * @param {Partial<import("./config.js").CardConfig>} [configInput]
+ */
 export function renderErrorCard(
   {
     title = "Live data is taking a moment.",

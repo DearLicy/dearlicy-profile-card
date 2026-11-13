@@ -162,6 +162,7 @@ async function requestGraphql(token, query, variables) {
       cacheEverything: true,
       cacheTtl: 240,
     },
+    signal: AbortSignal.timeout(12_000),
   });
 
   if (!response.ok) {
@@ -195,6 +196,7 @@ async function requestJson(url) {
       cacheEverything: true,
       cacheTtl: 240,
     },
+    signal: AbortSignal.timeout(10_000),
   });
   if (response.status === 404) {
     throw new ProfileNotFoundError(new URL(url).pathname.split("/")[2] || "profile");
@@ -224,6 +226,7 @@ async function fetchPublicContributions(login) {
         cacheEverything: true,
         cacheTtl: 240,
       },
+      signal: AbortSignal.timeout(8_000),
     });
     if (!response.ok) return 0;
     const html = await response.text();
@@ -245,10 +248,15 @@ function fallbackLanguageColor(name) {
 async function fetchRestProfile(env, requestedLogin) {
   const login = encodeURIComponent(requestedLogin);
   const user = await requestJson(`https://api.github.com/users/${login}`);
-  const repositories = await requestJson(
-    `https://api.github.com/users/${login}/repos?per_page=100&type=owner&sort=updated`,
-  );
-  const contributions = await fetchPublicContributions(user.login);
+  const [repositories, contributions, avatarDataUri] = await Promise.all([
+    requestJson(
+      `https://api.github.com/users/${login}/repos?per_page=100&type=owner&sort=updated`,
+    ),
+    fetchPublicContributions(user.login),
+    fetchImageDataUri(user.avatar_url, env, {
+      maxBytes: 1_000_000,
+    }),
+  ]);
   const publicRepositories = Array.isArray(repositories) ? repositories : [];
   const languagesByName = new Map();
 
@@ -294,9 +302,7 @@ async function fetchRestProfile(env, requestedLogin) {
   return {
     login: user.login,
     displayName: user.name || user.login,
-    avatarDataUri: await fetchImageDataUri(user.avatar_url, env, {
-      maxBytes: 1_000_000,
-    }),
+    avatarDataUri,
     stars,
     repositories: user.public_repos || publicRepositories.length,
     followers,
