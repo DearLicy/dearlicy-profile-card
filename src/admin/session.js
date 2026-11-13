@@ -78,20 +78,39 @@ function isSecureRequest(request) {
   return forwarded === "https" || new URL(request.url).protocol === "https:";
 }
 
+export function browserCookie(
+  name,
+  value,
+  request,
+  {
+    maxAge = SESSION_SECONDS,
+    clear = false,
+    sameSite = "Lax",
+    path = "/",
+    httpOnly = true,
+  } = {},
+) {
+  const bits = [
+    `${name}=${clear ? "" : value}`,
+    `Path=${path}`,
+    `SameSite=${sameSite}`,
+    `Max-Age=${clear ? 0 : maxAge}`,
+  ];
+  if (httpOnly) bits.push("HttpOnly");
+  if (isSecureRequest(request)) bits.push("Secure");
+  return bits.join("; ");
+}
+
 export function sessionCookie(
   value,
   request,
   { maxAge = SESSION_SECONDS, clear = false, sameSite = "Lax" } = {},
 ) {
-  const bits = [
-    `${SESSION_COOKIE}=${clear ? "" : value}`,
-    "Path=/",
-    "HttpOnly",
-    `SameSite=${sameSite}`,
-    `Max-Age=${clear ? 0 : maxAge}`,
-  ];
-  if (isSecureRequest(request)) bits.push("Secure");
-  return bits.join("; ");
+  return browserCookie(SESSION_COOKIE, value, request, {
+    maxAge,
+    clear,
+    sameSite,
+  });
 }
 
 export async function createSession(secret) {

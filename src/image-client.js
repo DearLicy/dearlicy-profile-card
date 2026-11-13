@@ -111,7 +111,8 @@ export const IMAGE_CLIENT_SCRIPT = `
     async function uploadLibraryImage(blob, options = {}) {
       const endpoint = options.admin ? "/admin/api/images" : "/api/images";
       const label = String(options.label || "").slice(0, 80);
-      const response = await fetch(endpoint + "?label=" + encodeURIComponent(label), {
+      const category = options.category === "anime" ? "anime" : "photo";
+      const response = await fetch(endpoint + "?label=" + encodeURIComponent(label) + "&category=" + category, {
         method: "POST",
         headers: { "Content-Type": "image/webp" },
         body: blob,

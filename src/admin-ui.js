@@ -354,6 +354,56 @@ export const ADMIN_SHELL_CSS = `
   .github-hero p { margin: 0; color: rgba(247,239,226,.63); font-size: 12px; line-height: 1.65; }
   .github-hero sl-badge { margin-left: auto; }
   .token-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+  .image-filter-row {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px 12px 12px 12px;
+    background: var(--field);
+  }
+  .image-filter-row sl-radio-group { min-width: 0; }
+  .image-filter-row sl-select { flex: 0 0 150px; }
+  .storage-hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 16px;
+    padding: 22px 24px;
+    border: 1px solid var(--ink);
+    border-radius: 4px 20px 20px 20px;
+    background:
+      linear-gradient(115deg, rgba(93,134,255,.12), transparent 46%),
+      var(--paper);
+    box-shadow: 5px 5px 0 var(--blue);
+  }
+  .storage-cloud {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    border: 1px solid var(--ink);
+    border-radius: 16px 7px 16px 7px;
+    background: var(--blue);
+    color: #fff8ec;
+  }
+  .storage-cloud svg { width: 27px; height: 27px; }
+  .storage-hero h2 { margin: 0 0 5px; font-size: 24px; letter-spacing: -.035em; }
+  .storage-hero p { max-width: 680px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+  .storage-account { display: grid; gap: 3px; min-width: 150px; padding-left: 18px; border-left: 1px solid var(--line-strong); }
+  .storage-account span { color: var(--dim); font: 650 9px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+  .storage-account strong { font-size: 14px; letter-spacing: -.02em; }
+  .storage-account small { max-width: 220px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+  .storage-migration-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .storage-migration-copy { display: grid; gap: 4px; min-width: 0; }
+  .storage-migration-copy strong { font-size: 13px; }
+  .storage-migration-copy small { color: var(--muted); font-size: 11px; line-height: 1.6; }
+  .storage-actions { margin-top: 14px; }
+  .dialog-title { margin: 0 0 10px; font-size: 19px; letter-spacing: -.035em; }
   .token-switch { margin-top: 14px; }
   .github-alert { margin-top: 14px; }
   .token-help { margin-top: 14px; border: 1px solid var(--line-strong); border-radius: 3px 12px 12px 12px; background: var(--field); }
@@ -453,6 +503,7 @@ export const ADMIN_SHELL_CSS = `
   .admin-image-preview img { display: block; width: 100%; height: 100%; object-fit: contain; transition: opacity 180ms var(--ease); }
   .admin-image-preview:hover img { opacity: .9; }
   .admin-image-thumb sl-badge { position: absolute; top: 8px; left: 8px; }
+  .admin-image-thumb sl-badge.admin-image-category { right: 8px; left: auto; }
   .admin-image-body { display: grid; gap: 5px; min-width: 0; padding: 10px 11px 8px; }
   .admin-image-body strong { overflow: hidden; font-size: 12px; font-weight: 720; text-overflow: ellipsis; white-space: nowrap; }
   .admin-image-body small { color: var(--dim); font: 500 9px/1.45 var(--font-mono); overflow-wrap: anywhere; }
@@ -636,7 +687,7 @@ export const ADMIN_DASHBOARD_CSS = `
       left: 0;
       z-index: 70;
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 3px;
       padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
       border-top: 1px solid var(--rail-line);
@@ -678,6 +729,12 @@ export const ADMIN_DASHBOARD_CSS = `
     .form-grid, .range-grid { grid-template-columns: 1fr; }
     .github-hero { flex-wrap: wrap; padding: 19px; }
     .github-hero sl-badge { margin-left: 0; }
+    .storage-hero { grid-template-columns: auto minmax(0, 1fr); padding: 20px 18px; box-shadow: 4px 4px 0 var(--blue); }
+    .storage-account { grid-column: 1 / -1; padding: 12px 0 0; border-top: 1px solid var(--line-strong); border-left: 0; }
+    .image-filter-row, .storage-migration-row { align-items: stretch; flex-direction: column; }
+    .image-filter-row sl-select { flex: 1 1 auto; width: 100%; }
+    .storage-migration-row sl-button { width: 100%; }
+    .storage-migration-row sl-button::part(base) { width: 100%; }
     .savebar { position: static; flex-direction: column; align-items: stretch; gap: 10px; padding: 13px; border-radius: 3px 13px 13px 13px; }
     .savebar > span { text-align: center; }
     .savebar sl-button { width: 100%; }

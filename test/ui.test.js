@@ -16,7 +16,6 @@ function assertComponentUi(html) {
   assert.match(html, /shoelace\/components\/input\/input\.js/);
   assert.match(html, /shoelace\/components\/progress-bar\/progress-bar\.js/);
   assert.doesNotMatch(html, nativeControlPattern);
-  assert.doesNotMatch(html, /\bOAuth\b|\boauth\b/);
 }
 
 test("studio and admin screens use the shared component system", () => {
@@ -52,6 +51,10 @@ test("studio and admin screens use the shared component system", () => {
   assert.match(studio, /id="uploadImageButton"/);
   assert.match(studio, /id="imageLibrary"/);
   assert.match(studio, /id="imageUploadProgress" value="0"/);
+  assert.match(studio, /id="libraryFilter"/);
+  assert.match(studio, /id="libraryUploadCategory"/);
+  assert.match(studio, /value="photo">写真/);
+  assert.match(studio, /value="anime">动漫/);
   assert.match(studio, /<sl-drawer id="imageDrawer"/);
   assert.match(studio, /id="openImageDrawer"/);
   assert.match(studio, /id="selectedImagePreview"/);
@@ -83,6 +86,11 @@ test("studio and admin screens use the shared component system", () => {
   assert.match(dashboard, /const corners = \["tl", "tr", "bl", "br"\]/);
   assert.match(dashboard, /id="allowPublicUploads"/);
   assert.match(dashboard, /id="adminImageGrid"/);
+  assert.match(dashboard, /id="adminImageFilter"/);
+  assert.match(dashboard, /id="adminUploadCategory"/);
+  assert.match(dashboard, /id="storageBadge"/);
+  assert.match(dashboard, /id="googleClientId"/);
+  assert.match(dashboard, /id="googleMigrationProgress"/);
   assert.match(dashboard, /id="imageLightboxDialog"/);
   assert.match(dashboard, /id="imageLightboxImage"/);
   assert.match(dashboard, /admin-image-preview/);

@@ -14,6 +14,13 @@ export const DEFAULT_SITE_CONFIG = Object.freeze({
   defaultUsername: "DearLicy",
   allowedUsers: ["DearLicy"],
   repoUrl: DEFAULT_REPO_URL,
+  storage: {
+    driver: "",
+    folderId: "",
+    clientId: "",
+    accountEmail: "",
+    connectedAt: "",
+  },
   card: DEFAULT_CARD_CONFIG,
   updatedAt: "",
 });
@@ -69,8 +76,22 @@ export function normalizeSiteConfig(input = {}) {
     defaultUsername,
     allowedUsers,
     repoUrl: httpsUrl(source.repoUrl, DEFAULT_REPO_URL),
+    storage: normalizeStorageConfig(source.storage),
     card: normalizeCardConfig(source.card || {}),
     updatedAt: String(source.updatedAt || "").slice(0, 40),
+  };
+}
+
+export function normalizeStorageConfig(input = {}) {
+  const source = input && typeof input === "object" ? input : {};
+  const driver = String(source.driver || "").trim().toLowerCase();
+  return {
+    driver:
+      driver === "google-drive" || driver === "file" ? driver : "",
+    folderId: String(source.folderId || "").trim().slice(0, 200),
+    clientId: String(source.clientId || "").trim().slice(0, 300),
+    accountEmail: String(source.accountEmail || "").trim().slice(0, 200),
+    connectedAt: String(source.connectedAt || "").trim().slice(0, 40),
   };
 }
 

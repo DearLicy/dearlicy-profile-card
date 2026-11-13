@@ -8,6 +8,7 @@ import { jsonResponse, responseHeaders } from "../http.js";
 import {
   MAX_IMAGE_BYTES,
   MAX_LIBRARY_IMAGES,
+  normalizeImageCategory,
   parseWebpDimensions,
 } from "../../server/image-store.mjs";
 
@@ -32,6 +33,7 @@ function publicImagePayload(image, origin) {
   return {
     id: image.id,
     label: image.label,
+    category: normalizeImageCategory(image.category),
     width: image.width,
     height: image.height,
     bytes: image.bytes,
@@ -157,10 +159,13 @@ export async function handlePublicImageUpload(request, runtime) {
 
   try {
     const buffer = await readImageBody(request);
-    const label = new URL(request.url).searchParams.get("label") || "";
+    const query = new URL(request.url).searchParams;
+    const label = query.get("label") || "";
+    const category = normalizeImageCategory(query.get("category"));
     const image = await store.create({
       buffer,
       label,
+      category,
       source: "guest",
       published: false,
     });
@@ -281,6 +286,7 @@ export async function handleAdminImageUpload(request, runtime) {
     const image = await store.create({
       buffer,
       label: query.get("label") || "",
+      category: normalizeImageCategory(query.get("category")),
       source: "admin",
       published: true,
     });
@@ -315,6 +321,9 @@ export async function handleAdminImageUpdate(request, runtime) {
   const patch = {};
   if (typeof body.published === "boolean") patch.published = body.published;
   if (body.label !== undefined) patch.label = String(body.label);
+  if (body.category !== undefined) {
+    patch.category = normalizeImageCategory(body.category);
+  }
   const image = await store.update(match[1], patch);
   if (!image) {
     return adminJsonResponse(request, 404, {

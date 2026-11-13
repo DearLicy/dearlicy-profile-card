@@ -193,6 +193,7 @@ export function renderAdminDashboardPage({ origin }) {
         <sl-button class="nav-item" data-section="access"><span slot="prefix">${ICONS.key}</span><span>访问与实例</span></sl-button>
         <sl-button class="nav-item" data-section="appearance"><span slot="prefix">${ICONS.palette}</span><span>卡片外观</span></sl-button>
         <sl-button class="nav-item" data-section="images"><span slot="prefix">${ICONS.image}</span><span>图片库</span></sl-button>
+        <sl-button class="nav-item" data-section="storage"><span slot="prefix">${ICONS.cloud}</span><span>云端存储</span></sl-button>
         <sl-button class="nav-item" data-section="github"><span slot="prefix">${ICONS.github}</span><span>GitHub 数据</span></sl-button>
         <sl-button class="nav-item" data-section="settings"><span slot="prefix">${ICONS.settings}</span><span>系统设置</span></sl-button>
       </nav>
@@ -323,6 +324,65 @@ export function renderAdminDashboardPage({ origin }) {
             </section>
           </section>
 
+          <section class="dashboard-section" data-section="storage">
+            <div class="section-intro"><div><h2>云端存储</h2><p>从后台授权 Google Drive，把背景图片和索引移出服务器磁盘。授权令牌只在服务端加密保存。</p></div><sl-badge id="storageBadge" pill>检查中</sl-badge></div>
+            <div class="storage-hero">
+              <div class="storage-cloud">${ICONS.cloud}</div>
+              <div><h2 id="storageHeadline">正在检查图片存储</h2><p id="storageDescription">配置 Google OAuth 客户端后，即可在后台完成授权并切换到 Google Drive。</p></div>
+              <div class="storage-account"><span>当前存储</span><strong id="storageDriverLabel">读取中</strong><small id="storageAccountLabel">尚未连接</small></div>
+            </div>
+            <section class="panel form-panel">
+              <div class="panel-head"><div><h3>Google OAuth 应用</h3><p>在 Google Cloud Console 创建 Web 应用客户端，并添加下方回调地址。</p></div><sl-badge id="storageCredentialBadge" pill>未配置</sl-badge></div>
+              <div class="panel-body form-grid" data-storage-form>
+                <div class="wide">
+                  <sl-input id="googleRedirectUri" label="OAuth 回调地址" readonly help-text="必须与 Google Cloud Console 中填写的重定向 URI 完全一致。"></sl-input>
+                </div>
+                <sl-input id="googleClientId" label="OAuth 客户端 ID" placeholder="…apps.googleusercontent.com"></sl-input>
+                <sl-input id="googleClientSecret" type="password" password-toggle label="OAuth 客户端密钥" placeholder="留空保留已保存密钥" help-text="保存后不会再次显示明文。"></sl-input>
+                <div class="wide">
+                  <sl-input id="googleFolderId" label="Google Drive 文件夹 ID（可选）" placeholder="留空会自动创建 Profile Card Image Library" help-text="也可以粘贴 Drive 文件夹链接；授权账户必须拥有编辑权限。"></sl-input>
+                </div>
+                <div class="wide token-actions">
+                  <sl-button id="saveGoogleConfigButton"><span slot="prefix">${ICONS.check}</span><span>保存授权应用</span></sl-button>
+                  <sl-button id="copyGoogleRedirectButton"><span slot="prefix">${ICONS.copy}</span><span>复制回调地址</span></sl-button>
+                  <sl-button id="connectGoogleDriveButton" variant="primary"><span slot="prefix">${ICONS.external}</span><span>连接 Google Drive</span></sl-button>
+                </div>
+                <sl-alert id="googleStorageAlert" class="wide github-alert" hidden></sl-alert>
+                <div class="wide info-note"><i></i><span>连接成功后，图片库会立即切换到 Drive。站点配置仍然保存在本地 <code>config.json</code>；Google 密钥和 refresh token 使用 AES-GCM 加密。</span></div>
+              </div>
+              <sl-details class="token-help" summary="如何在 Google Cloud 创建 OAuth 客户端？">
+                <ol>
+                  <li>打开 Google Cloud Console，启用 <strong>Google Drive API</strong>。</li>
+                  <li>配置 OAuth 同意屏幕，并创建类型为 <strong>Web 应用</strong>的 OAuth 客户端。</li>
+                  <li>把上方回调地址加入“已获授权的重定向 URI”。</li>
+                  <li>将客户端 ID 与密钥填入本页，保存后点击“连接 Google Drive”。</li>
+                </ol>
+              </sl-details>
+            </section>
+            <section class="panel form-panel">
+              <div class="panel-head"><div><h3>本地图片迁移</h3><p>切换 Drive 后，可把现有本地 WebP 和索引按原 UUID、分类与审核状态迁移过去。</p></div><sl-badge id="localImageBadge" pill>读取中</sl-badge></div>
+              <div class="panel-body">
+                <div class="storage-migration-row">
+                  <div class="storage-migration-copy"><strong id="localImageCount">正在统计本地图片…</strong><small id="migrationHelp">迁移不会删除本地文件；确认 Drive 正常后再自行清理。</small></div>
+                  <sl-button id="migrateGoogleImagesButton"><span slot="prefix">${ICONS.upload}</span><span>迁移本地图片</span></sl-button>
+                </div>
+                <div class="background-job admin-upload-job" id="googleMigrationJob" hidden>
+                  <div class="background-status-row">
+                    <sl-badge id="googleMigrationStatus" pill>准备迁移</sl-badge>
+                    <span class="background-percent" id="googleMigrationPercent">0%</span>
+                  </div>
+                  <sl-progress-bar id="googleMigrationProgress" value="0" label="Google Drive 图片迁移进度"></sl-progress-bar>
+                  <small class="background-help" id="googleMigrationMessage"></small>
+                </div>
+                <div class="token-actions storage-actions">
+                  <sl-button id="testGoogleDriveButton"><span slot="prefix">${ICONS.refresh}</span><span>测试 Drive 连接</span></sl-button>
+                  <sl-button id="disconnectGoogleDriveButton" variant="warning"><span>断开 Drive 并切回本地</span></sl-button>
+                  <sl-button id="clearGoogleCredentialsButton" variant="danger"><span>移除全部 Google 凭据</span></sl-button>
+                </div>
+              </div>
+            </section>
+          </section>
+
           <section class="dashboard-section" data-section="github">
             <div class="section-intro"><div><h2>GitHub 数据</h2><p>只配置一条服务端只读令牌，就能把匿名 REST 提升到更稳定的 GraphQL 数据通道。</p></div><sl-badge id="githubBadge" pill>检查中</sl-badge></div>
             <div class="github-hero">
@@ -367,8 +427,19 @@ export function renderAdminDashboardPage({ origin }) {
               </div>
             </section>
             <section class="panel form-panel">
-              <div class="panel-head"><div><h3>图片管理</h3><p>管理员上传后直接公开；可以随时下线或删除。</p></div><sl-button id="adminUploadImage" variant="primary" size="small"><span slot="prefix">${ICONS.upload}</span><span>上传图片</span></sl-button></div>
+              <div class="panel-head"><div><h3>图片管理</h3><p>管理员上传后直接公开；可以随时切换分类、下线或删除。</p></div><sl-button id="adminUploadImage" variant="primary" size="small"><span slot="prefix">${ICONS.upload}</span><span>上传图片</span></sl-button></div>
               <div class="panel-body">
+                <div class="image-filter-row" id="adminImageFilterRow">
+                  <sl-radio-group id="adminImageFilter" label="筛选分类" value="all">
+                    <sl-radio-button value="all">全部</sl-radio-button>
+                    <sl-radio-button value="photo">写真</sl-radio-button>
+                    <sl-radio-button value="anime">动漫</sl-radio-button>
+                  </sl-radio-group>
+                  <sl-select id="adminUploadCategory" label="上传分类" value="photo" size="small">
+                    <sl-option value="photo">写真</sl-option>
+                    <sl-option value="anime">动漫</sl-option>
+                  </sl-select>
+                </div>
                 <div class="background-job admin-upload-job" id="adminUploadJob" hidden>
                   <div class="background-status-row">
                     <sl-badge id="adminUploadStatus" pill>准备上传</sl-badge>
@@ -422,6 +493,12 @@ export function renderAdminDashboardPage({ origin }) {
     <sl-button slot="footer" id="cancelImageDelete">取消</sl-button>
     <sl-button slot="footer" id="confirmImageDelete" variant="danger">确认删除</sl-button>
   </sl-dialog>
+  <sl-dialog id="storageConfirmDialog" label="确认存储操作">
+    <h3 id="storageConfirmTitle" class="dialog-title">断开 Google Drive？</h3>
+    <p class="delete-dialog-copy" id="storageConfirmCopy"></p>
+    <sl-button slot="footer" id="cancelStorageAction">取消</sl-button>
+    <sl-button slot="footer" id="confirmStorageAction" variant="danger">确认断开</sl-button>
+  </sl-dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
 
   <script type="module">
@@ -442,12 +519,13 @@ export function renderAdminDashboardPage({ origin }) {
       note: theme.noteZh || theme.note,
       accent: theme.colors.accent,
     }])))};
-    const state = { config: null, dirty: false, images: [], imageStats: null, pendingDelete: null, uploading: false };
+    const state = { config: null, storage: null, dirty: false, images: [], imageStats: null, pendingDelete: null, uploading: false, imageFilter: "all", migrationTimer: null };
     const titles = {
       overview: ["运行总览", "查看实例状态、数据连接与最近配置。"],
       access: ["访问与实例", "控制公开范围、默认用户和项目链接。"],
       appearance: ["卡片外观", "设置所有新请求的默认卡片样式。"],
       images: ["图片库", "上传、审核、公开或删除背景图片。"],
+      storage: ["云端存储", "在后台连接 Google Drive 并迁移本地图片。"],
       github: ["GitHub 数据", "配置只读令牌并检查数据通道。"],
       settings: ["系统设置", "查看实例信息并执行维护操作。"],
     };
@@ -519,6 +597,32 @@ export function renderAdminDashboardPage({ origin }) {
       confirmImageDelete: document.getElementById("confirmImageDelete"),
       imageLightboxDialog: document.getElementById("imageLightboxDialog"),
       imageLightboxImage: document.getElementById("imageLightboxImage"),
+      adminImageFilter: document.getElementById("adminImageFilter"),
+      adminUploadCategory: document.getElementById("adminUploadCategory"),
+      storageBadge: document.getElementById("storageBadge"),
+      storageHeadline: document.getElementById("storageHeadline"),
+      storageDescription: document.getElementById("storageDescription"),
+      storageDriverLabel: document.getElementById("storageDriverLabel"),
+      storageAccountLabel: document.getElementById("storageAccountLabel"),
+      storageCredentialBadge: document.getElementById("storageCredentialBadge"),
+      googleRedirectUri: document.getElementById("googleRedirectUri"),
+      googleClientId: document.getElementById("googleClientId"),
+      googleClientSecret: document.getElementById("googleClientSecret"),
+      googleFolderId: document.getElementById("googleFolderId"),
+      googleStorageAlert: document.getElementById("googleStorageAlert"),
+      connectGoogleDriveButton: document.getElementById("connectGoogleDriveButton"),
+      testGoogleDriveButton: document.getElementById("testGoogleDriveButton"),
+      migrateGoogleImagesButton: document.getElementById("migrateGoogleImagesButton"),
+      disconnectGoogleDriveButton: document.getElementById("disconnectGoogleDriveButton"),
+      clearGoogleCredentialsButton: document.getElementById("clearGoogleCredentialsButton"),
+      localImageBadge: document.getElementById("localImageBadge"),
+      localImageCount: document.getElementById("localImageCount"),
+      migrationHelp: document.getElementById("migrationHelp"),
+      googleMigrationJob: document.getElementById("googleMigrationJob"),
+      googleMigrationStatus: document.getElementById("googleMigrationStatus"),
+      googleMigrationProgress: document.getElementById("googleMigrationProgress"),
+      googleMigrationPercent: document.getElementById("googleMigrationPercent"),
+      googleMigrationMessage: document.getElementById("googleMigrationMessage"),
     };
     const corners = ["tl", "tr", "bl", "br"];
     let toastTimer;
@@ -551,6 +655,10 @@ export function renderAdminDashboardPage({ origin }) {
       if (!value) return "未知时间";
       try { return new Date(value).toLocaleString("zh-CN"); } catch { return "未知时间"; }
     }
+    const imageCategories = { photo: "写真", anime: "动漫" };
+    function categoryLabel(value) {
+      return imageCategories[value] || imageCategories.photo;
+    }
     function setAdminUploadStatus(label, variant, value, help) {
       elements.adminUploadStatus.textContent = label;
       elements.adminUploadStatus.variant = variant;
@@ -571,24 +679,28 @@ export function renderAdminDashboardPage({ origin }) {
       for (const image of published) {
         const option = document.createElement("sl-option");
         option.value = image.id;
-        option.textContent = image.label + " · " + image.width + "×" + image.height;
+        option.textContent = image.label + " · " + categoryLabel(image.category) + " · " + image.width + "×" + image.height;
         elements.backgroundImage.append(option);
       }
       elements.backgroundImage.value = published.some((image) => image.id === selected) ? selected : "";
     }
     function renderAdminImages() {
       elements.adminImageGrid.replaceChildren();
-      const images = state.images;
-      const stats = state.imageStats || { total: images.length, published: 0, pending: 0, bytes: 0 };
+      const allImages = state.images;
+      const images = allImages.filter((image) => state.imageFilter === "all" || image.category === state.imageFilter);
+      const stats = state.imageStats || { total: allImages.length, published: 0, pending: 0, bytes: 0, categories: {} };
       elements.imageStatTotal.textContent = String(stats.total);
       elements.imageStatPublished.textContent = String(stats.published);
       elements.imageStatPending.textContent = String(stats.pending);
       elements.imageStatBytes.textContent = formatImageBytes(stats.bytes);
       elements.imageCountBadge.textContent = stats.total
-        ? stats.published + " 张已公开 · " + stats.pending + " 张待审核"
+        ? stats.published + " 张已公开 · " + stats.pending + " 张待审核 · " + (stats.categories?.photo?.total || 0) + " 写真 / " + (stats.categories?.anime?.total || 0) + " 动漫"
         : "等待第一张图片";
       elements.imageCountBadge.variant = stats.pending ? "warning" : "neutral";
       elements.adminImageEmpty.hidden = images.length > 0;
+      elements.adminImageEmpty.textContent = allImages.length && !images.length
+        ? "当前分类下还没有图片。"
+        : "图片库还是空的。上传第一张背景图片，或等待游客提交。";
       for (const image of images) {
         const card = document.createElement("article");
         card.className = "admin-image-card";
@@ -608,13 +720,18 @@ export function renderAdminDashboardPage({ origin }) {
         badge.setAttribute("pill", "");
         badge.setAttribute("variant", image.published ? "success" : "warning");
         badge.textContent = image.published ? "已公开" : "待审核";
-        thumb.append(previewButton, badge);
+        const categoryBadge = document.createElement("sl-badge");
+        categoryBadge.className = "admin-image-category";
+        categoryBadge.setAttribute("pill", "");
+        categoryBadge.setAttribute("variant", image.category === "anime" ? "neutral" : "primary");
+        categoryBadge.textContent = categoryLabel(image.category);
+        thumb.append(previewButton, badge, categoryBadge);
         const body = document.createElement("div");
         body.className = "admin-image-body";
         const title = document.createElement("strong");
         title.textContent = image.label;
         const meta = document.createElement("small");
-        meta.textContent = image.width + "×" + image.height + " · " + formatImageBytes(image.bytes) + " · " + (image.source === "admin" ? "管理员" : "游客") + " · " + imageDate(image.createdAt);
+        meta.textContent = categoryLabel(image.category) + " · " + image.width + "×" + image.height + " · " + formatImageBytes(image.bytes) + " · " + (image.source === "admin" ? "管理员" : "游客") + " · " + imageDate(image.createdAt);
         body.append(title, meta);
         const actions = document.createElement("div");
         actions.className = "admin-image-actions";
@@ -622,12 +739,16 @@ export function renderAdminDashboardPage({ origin }) {
         toggle.size = "small";
         toggle.textContent = image.published ? "下线" : "公开";
         toggle.addEventListener("click", () => toggleImage(image, toggle));
+        const switchCategory = document.createElement("sl-button");
+        switchCategory.size = "small";
+        switchCategory.textContent = image.category === "anime" ? "改为写真" : "改为动漫";
+        switchCategory.addEventListener("click", () => toggleImageCategory(image, switchCategory));
         const remove = document.createElement("sl-button");
         remove.size = "small";
         remove.setAttribute("variant", "danger");
         remove.textContent = "删除";
         remove.addEventListener("click", () => askDeleteImage(image));
-        actions.append(toggle, remove);
+        actions.append(toggle, switchCategory, remove);
         card.append(thumb, body, actions);
         elements.adminImageGrid.append(card);
       }
@@ -678,6 +799,30 @@ export function renderAdminDashboardPage({ origin }) {
         button.loading = false;
       }
     }
+    async function toggleImageCategory(image, button) {
+      button.disabled = true;
+      button.loading = true;
+      const category = image.category === "anime" ? "photo" : "anime";
+      try {
+        const response = await fetch("/admin/api/images/" + image.id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "更新分类失败。");
+        toast("已改为" + categoryLabel(category));
+        await loadImages();
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "更新分类失败。");
+        button.disabled = false;
+        button.loading = false;
+      }
+    }
     function askDeleteImage(image) {
       state.pendingDelete = image;
       elements.imageDeleteCopy.textContent = "删除“" + image.label + "”后，已选择该背景的卡片将不再显示图片，且无法恢复。";
@@ -709,6 +854,7 @@ export function renderAdminDashboardPage({ origin }) {
     }
     async function uploadAdminImage() {
       if (state.uploading) return;
+      const category = elements.adminUploadCategory.value || "photo";
       const file = await chooseImageFile();
       if (!file) return;
       state.uploading = true;
@@ -722,8 +868,8 @@ export function renderAdminDashboardPage({ origin }) {
           onProgress: (value, label) => setAdminUploadStatus(label, "neutral", value, "自动压缩到 1 MB 以内，再进行上传。"),
         });
         setAdminUploadStatus("上传压缩图", "neutral", 88, formatImageBytes(compressed.blob.size) + " WebP · 上传后立即公开。");
-        await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file), admin: true });
-        setAdminUploadStatus("上传完成", "success", 100, "图片已加入图片库并公开给游客选择。");
+        await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file), category, admin: true });
+        setAdminUploadStatus("上传完成", "success", 100, "图片已归入“" + categoryLabel(category) + "”并公开给游客选择。");
         toast("图片已上传并公开");
         await loadImages();
       } catch (error) {
@@ -750,6 +896,252 @@ export function renderAdminDashboardPage({ origin }) {
       if (source === "stored") return "后台令牌";
       if (source === "environment") return "环境变量令牌";
       return "匿名公开接口";
+    }
+    function storageSourceLabel(source) {
+      if (source === "admin") return "后台配置";
+      if (source === "environment") return "环境变量";
+      return "默认本地存储";
+    }
+    function hydrateStorage(storage) {
+      state.storage = storage || null;
+      elements.googleRedirectUri.value = origin + "/admin/oauth/google/callback";
+      if (!storage) {
+        setBadge(elements.storageBadge, "neutral", "状态未知");
+        setBadge(elements.storageCredentialBadge, "neutral", "未配置");
+        return;
+      }
+      const drive = storage.driver === "google-drive";
+      const connected = drive && (storage.hasRefreshToken || storage.hasServiceAccount);
+      const credentialReady = Boolean(storage.clientId && storage.hasClientSecret);
+      setBadge(
+        elements.storageBadge,
+        connected ? "success" : credentialReady ? "warning" : "neutral",
+        connected ? "Drive 已连接" : credentialReady ? "等待授权" : "未配置",
+      );
+      setBadge(
+        elements.storageCredentialBadge,
+        credentialReady ? "success" : "warning",
+        credentialReady ? "OAuth 应用已保存" : "需要 OAuth 应用",
+      );
+      elements.storageHeadline.textContent = connected
+        ? "图片库正在使用 Google Drive"
+        : credentialReady
+          ? "OAuth 应用已就绪，等待授权"
+          : "连接 Google Drive，释放服务器磁盘";
+      elements.storageDescription.textContent = connected
+        ? "图片文件和新索引会写入 Drive；本地仅保留站点配置和少量内存缓存。"
+        : credentialReady
+          ? "点击“连接 Google Drive”完成一次性授权，随后可迁移本地图片。"
+          : "先保存 Google OAuth 客户端信息，再从后台发起一次性授权。";
+      elements.storageDriverLabel.textContent = drive ? "Google Drive" : "本地数据卷";
+      elements.storageAccountLabel.textContent = storage.accountEmail
+        || storage.folderId
+        || storageSourceLabel(storage.source);
+      elements.googleClientId.value = storage.clientId || "";
+      elements.googleClientSecret.value = "";
+      elements.googleFolderId.value = storage.folderId || "";
+      const local = storage.localImages || { total: 0, published: 0, pending: 0, bytes: 0 };
+      elements.localImageCount.textContent = local.total
+        ? "本地共有 " + local.total + " 张图片 · " + formatImageBytes(local.bytes)
+        : "本地图片库为空";
+      setBadge(elements.localImageBadge, local.total ? "warning" : "neutral", local.total ? local.total + " 张待处理" : "无需迁移");
+      elements.migrationHelp.textContent = connected
+        ? local.total
+          ? "建议迁移后再清理 data/images；原 UUID、分类和审核状态都会保留。"
+          : "本地没有需要迁移的图片。"
+        : "启用 Google Drive 后才能迁移本地图片。";
+      elements.migrateGoogleImagesButton.disabled = !connected || !local.total;
+      elements.disconnectGoogleDriveButton.disabled = !connected;
+      elements.clearGoogleCredentialsButton.disabled = !storage.hasClientSecret
+        && !storage.hasRefreshToken
+        && !storage.clientId
+        && !storage.folderId;
+      elements.statStorage.textContent = drive ? "Google Drive" : "本地数据卷";
+      elements.statStorageNote.textContent = connected
+        ? (storage.accountEmail || "图片与索引已托管")
+        : levelStorageNote(storage);
+      elements.testGoogleDriveButton.disabled = !connected;
+    }
+    function levelStorageNote(storage) {
+      if (storage.driver === "google-drive") return "Drive 连接不完整，请重新授权";
+      if (storage.source === "admin") return "后台已切换为本地存储";
+      return "图片保存在服务器数据卷";
+    }
+    function showStorageAlert(variant, message) {
+      elements.googleStorageAlert.variant = variant;
+      elements.googleStorageAlert.textContent = message;
+      elements.googleStorageAlert.hidden = false;
+    }
+    async function applyStoragePayload(payload) {
+      const storage = payload?.storage || null;
+      if (storage) hydrateStorage(storage);
+      return storage;
+    }
+    async function saveGoogleConfig({ quiet = false } = {}) {
+      const clientId = String(elements.googleClientId.value || "").trim();
+      const clientSecret = String(elements.googleClientSecret.value || "").trim();
+      const folderId = String(elements.googleFolderId.value || "").trim();
+      if (!clientId) {
+        throw new Error("请填写 Google OAuth 客户端 ID。");
+      }
+      const response = await fetch("/admin/api/google/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, clientSecret, folderId }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        location.replace("/admin/login");
+        throw new Error("管理员会话已失效。");
+      }
+      if (!response.ok) throw new Error(payload.message || "Google OAuth 应用保存失败。");
+      await applyStoragePayload(payload);
+      if (!quiet) {
+        showStorageAlert("success", "Google OAuth 应用已保存。现在可以点击“连接 Google Drive”。");
+        toast("Google OAuth 应用已保存");
+      }
+      return payload.storage;
+    }
+    async function connectGoogleDrive() {
+      const button = document.getElementById("connectGoogleDriveButton");
+      button.disabled = true;
+      button.loading = true;
+      try {
+        const storage = await saveGoogleConfig({ quiet: true });
+        if (!storage?.hasClientSecret) {
+          throw new Error("请先填写并保存 Google OAuth 客户端密钥。");
+        }
+        location.href = "/admin/oauth/google/start";
+      } catch (error) {
+        showStorageAlert("danger", error instanceof Error ? error.message : "无法开始 Google 授权。");
+        toast("无法开始 Google 授权");
+        button.disabled = false;
+        button.loading = false;
+      }
+    }
+    async function testGoogleStorage() {
+      const button = document.getElementById("testGoogleDriveButton");
+      button.disabled = true;
+      button.loading = true;
+      elements.googleStorageAlert.hidden = true;
+      try {
+        const response = await fetch("/admin/api/google/test", { method: "POST" });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "Drive 连接测试失败。");
+        showStorageAlert("success", "Google Drive 连接正常，当前 " + payload.total + " 张图片，用时 " + payload.latencyMs + "ms。");
+        toast("Google Drive 连接正常");
+      } catch (error) {
+        showStorageAlert("danger", error instanceof Error ? error.message : "Drive 连接测试失败。");
+        toast("Google Drive 连接测试失败");
+      } finally {
+        button.disabled = false;
+        button.loading = false;
+      }
+    }
+    function setMigrationProgress(job) {
+      const total = Number(job.total) || 0;
+      const processed = (Number(job.copied) || 0) + (Number(job.skipped) || 0) + (Number(job.failed) || 0);
+      const percent = job.status === "complete" ? 100 : total ? Math.min(96, Math.round(processed / total * 100)) : job.status === "running" ? 6 : 0;
+      elements.googleMigrationJob.hidden = job.status === "idle";
+      elements.googleMigrationStatus.textContent = job.status === "running" ? "迁移中" : job.status === "complete" ? "迁移完成" : job.status === "failed" ? "迁移失败" : "准备迁移";
+      elements.googleMigrationStatus.variant = job.status === "complete" ? "success" : job.status === "failed" ? "danger" : "neutral";
+      elements.googleMigrationProgress.value = percent;
+      elements.googleMigrationPercent.textContent = percent + "%";
+      elements.googleMigrationMessage.textContent = job.message || "";
+      elements.googleMigrationJob.classList.toggle("is-error", job.status === "failed");
+      elements.googleMigrationJob.classList.toggle("is-complete", job.status === "complete");
+    }
+    async function pollGoogleMigration(initial = false) {
+      clearTimeout(state.migrationTimer);
+      try {
+        const response = await fetch("/admin/api/google/migrate", { cache: "no-store" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || "读取迁移状态失败。");
+        const job = payload.job || {};
+        setMigrationProgress(job);
+        if (job.status === "running") {
+          state.migrationTimer = setTimeout(() => pollGoogleMigration(false), 900);
+          return;
+        }
+        elements.migrateGoogleImagesButton.disabled = false;
+        elements.migrateGoogleImagesButton.loading = false;
+        if (job.status === "complete" && !initial) {
+          toast(job.message || "本地图片迁移完成");
+          await Promise.all([load(), loadImages()]);
+        } else if (job.status === "failed") {
+          showStorageAlert("danger", job.message || "图片迁移失败。");
+          toast("图片迁移失败");
+        }
+      } catch (error) {
+        elements.migrateGoogleImagesButton.disabled = false;
+        elements.migrateGoogleImagesButton.loading = false;
+        showStorageAlert("danger", error instanceof Error ? error.message : "读取迁移状态失败。");
+      }
+    }
+    async function migrateLocalImages() {
+      const button = document.getElementById("migrateGoogleImagesButton");
+      button.disabled = true;
+      button.loading = true;
+      elements.googleStorageAlert.hidden = true;
+      try {
+        const response = await fetch("/admin/api/google/migrate", { method: "POST" });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "无法开始迁移。");
+        setMigrationProgress(payload.job || { status: "running", total: 0 });
+        state.migrationTimer = setTimeout(pollGoogleMigration, 500);
+      } catch (error) {
+        button.disabled = false;
+        button.loading = false;
+        showStorageAlert("danger", error instanceof Error ? error.message : "无法开始迁移。");
+        toast("无法开始迁移");
+      }
+    }
+    let pendingStorageAction = "";
+    function askStorageAction(action) {
+      pendingStorageAction = action;
+      const dialog = document.getElementById("storageConfirmDialog");
+      const clear = action === "clear";
+      document.getElementById("storageConfirmTitle").textContent = clear ? "移除全部 Google 凭据？" : "断开 Google Drive？";
+      document.getElementById("storageConfirmCopy").textContent = clear
+        ? "会切回本地存储，并删除已加密保存的客户端密钥和 refresh token。Drive 中已有文件不会被删除。"
+        : "会切回本地存储并移除 refresh token，但保留 OAuth 应用信息，方便以后重新连接。";
+      document.getElementById("confirmStorageAction").textContent = clear ? "确认移除" : "确认断开";
+      dialog.show();
+    }
+    async function runStorageAction() {
+      const button = document.getElementById("confirmStorageAction");
+      button.disabled = true;
+      button.loading = true;
+      try {
+        const clear = pendingStorageAction === "clear";
+        const response = await fetch(clear ? "/admin/api/google/credentials" : "/admin/api/google/disconnect", {
+          method: clear ? "DELETE" : "POST",
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          location.replace("/admin/login");
+          return;
+        }
+        if (!response.ok) throw new Error(payload.message || "存储操作失败。");
+        document.getElementById("storageConfirmDialog").hide();
+        await applyStoragePayload(payload);
+        await load();
+        toast(clear ? "Google 凭据已移除" : "已切回本地存储");
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "存储操作失败。");
+      } finally {
+        button.disabled = false;
+        button.loading = false;
+        pendingStorageAction = "";
+      }
     }
     function cardConfig() {
       const accent = String(elements.accent.value || "").toUpperCase();
@@ -822,6 +1214,7 @@ export function renderAdminDashboardPage({ origin }) {
         ? "服务端正在使用" + source + "。现在可以通过 GraphQL 读取更完整的公开资料。"
         : "匿名接口通常每小时只有 60 次请求。创建只读令牌后，服务端可以提高到每小时 5,000 次。";
       elements.clearToken.disabled = !payload.github.hasStoredToken;
+      hydrateStorage(payload.storage);
       state.dirty = false;
       elements.saveNote.textContent = site.updatedAt ? "上次保存：" + new Date(site.updatedAt).toLocaleString("zh-CN") : "当前使用默认配置，保存后写入数据卷。";
     }
@@ -836,6 +1229,8 @@ export function renderAdminDashboardPage({ origin }) {
         if (!response.ok) throw new Error(payload.message || "读取配置失败。");
         hydrate(payload);
         await loadImages();
+        handleGoogleReturn();
+        pollGoogleMigration(true);
       } catch (error) {
         toast(error instanceof Error ? error.message : "读取配置失败。");
       }
@@ -926,8 +1321,27 @@ export function renderAdminDashboardPage({ origin }) {
       }
     }
     function markDirty() {
+      const source = arguments[0]?.target;
+      if (source?.closest?.(".image-filter-row, [data-storage-form]")) return;
       state.dirty = true;
       elements.saveNote.textContent = "有未保存的修改";
+    }
+    function handleGoogleReturn() {
+      const url = new URL(location.href);
+      const status = url.searchParams.get("google");
+      if (!status) return;
+      url.searchParams.delete("google");
+      history.replaceState(null, "", url.pathname + url.search + url.hash);
+      if (status === "connected") {
+        showStorageAlert("success", "Google Drive 已连接。若本地已有图片，请继续点击“迁移本地图片”。");
+        toast("Google Drive 已连接");
+      } else if (status === "config-required") {
+        showStorageAlert("danger", "请先保存 Google OAuth 客户端 ID 和密钥，再发起授权。");
+        toast("请先保存 OAuth 应用");
+      } else {
+        showStorageAlert("danger", "Google 授权未完成。请确认回调地址和 OAuth 客户端配置后重试。");
+        toast("Google 授权失败");
+      }
     }
     function logout() {
       return fetch("/admin/api/logout", { method: "POST" }).catch(() => undefined).finally(() => location.replace("/admin/login"));
@@ -950,6 +1364,45 @@ export function renderAdminDashboardPage({ origin }) {
     document.getElementById("testGithubButton").addEventListener("click", testGithub);
     document.getElementById("quickGithubButton").addEventListener("click", () => activateSection("github"));
     document.getElementById("quickAppearanceButton").addEventListener("click", () => activateSection("appearance"));
+    elements.adminImageFilter.addEventListener("sl-change", () => {
+      state.imageFilter = elements.adminImageFilter.value || "all";
+      renderAdminImages();
+    });
+    document.getElementById("saveGoogleConfigButton").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.loading = true;
+      try {
+        await saveGoogleConfig();
+      } catch (error) {
+        showStorageAlert("danger", error instanceof Error ? error.message : "Google OAuth 应用保存失败。");
+        toast("Google OAuth 应用保存失败");
+      } finally {
+        button.disabled = false;
+        button.loading = false;
+      }
+    });
+    document.getElementById("connectGoogleDriveButton").addEventListener("click", connectGoogleDrive);
+    document.getElementById("testGoogleDriveButton").addEventListener("click", testGoogleStorage);
+    document.getElementById("migrateGoogleImagesButton").addEventListener("click", migrateLocalImages);
+    document.getElementById("disconnectGoogleDriveButton").addEventListener("click", () => askStorageAction("disconnect"));
+    document.getElementById("clearGoogleCredentialsButton").addEventListener("click", () => askStorageAction("clear"));
+    document.getElementById("cancelStorageAction").addEventListener("click", () => {
+      pendingStorageAction = "";
+      document.getElementById("storageConfirmDialog").hide();
+    });
+    document.getElementById("confirmStorageAction").addEventListener("click", runStorageAction);
+    document.getElementById("storageConfirmDialog").addEventListener("sl-after-hide", () => {
+      if (!document.getElementById("confirmStorageAction").loading) pendingStorageAction = "";
+    });
+    document.getElementById("copyGoogleRedirectButton").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(elements.googleRedirectUri.value);
+        toast("回调地址已复制");
+      } catch {
+        toast("无法复制，请手动选择地址");
+      }
+    });
     elements.adminUploadImage.addEventListener("click", uploadAdminImage);
     elements.cancelImageDelete.addEventListener("click", () => {
       state.pendingDelete = null;

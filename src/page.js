@@ -308,11 +308,22 @@ export function renderStudioPage({
     </div>
     <div class="library-toolbar">
       <div class="library-copy"><strong>选择背景</strong><small>点选图片后立即应用。</small></div>
-      <sl-button id="uploadImageButton" size="small" ${allowPublicUploads ? "" : "hidden"}>
-        <span slot="prefix">${ICONS.upload}</span>
-        <span>上传图片</span>
-      </sl-button>
+      <div class="library-upload-actions">
+        <sl-select id="libraryUploadCategory" size="small" value="photo" label="上传分类">
+          <sl-option value="photo">写真</sl-option>
+          <sl-option value="anime">动漫</sl-option>
+        </sl-select>
+        <sl-button id="uploadImageButton" size="small" ${allowPublicUploads ? "" : "hidden"}>
+          <span slot="prefix">${ICONS.upload}</span>
+          <span>上传图片</span>
+        </sl-button>
+      </div>
     </div>
+    <sl-radio-group id="libraryFilter" class="library-filter" label="图片分类" value="all">
+      <sl-radio-button value="all">全部</sl-radio-button>
+      <sl-radio-button value="photo">写真</sl-radio-button>
+      <sl-radio-button value="anime">动漫</sl-radio-button>
+    </sl-radio-group>
     <div class="background-job image-upload-job" id="imageUploadJob" hidden>
       <div class="background-status-row">
         <sl-badge id="imageUploadStatus" pill>准备上传</sl-badge>
@@ -366,6 +377,7 @@ export function renderStudioPage({
       libraryLoaded: false,
       libraryError: "",
       libraryAllowPublic: Boolean(initialAllowPublicUploads),
+      libraryFilter: "all",
       uploadingImage: false,
     };
     const elements = {
@@ -402,6 +414,8 @@ export function renderStudioPage({
       openImageDrawer: document.getElementById("openImageDrawer"),
       imageLibrary: document.getElementById("imageLibrary"),
       imageLibraryEmpty: document.getElementById("imageLibraryEmpty"),
+      libraryFilter: document.getElementById("libraryFilter"),
+      libraryUploadCategory: document.getElementById("libraryUploadCategory"),
       librarySummary: document.getElementById("librarySummary"),
       selectedImageFrame: document.getElementById("selectedImageFrame"),
       selectedImagePreview: document.getElementById("selectedImagePreview"),
@@ -632,7 +646,8 @@ export function renderStudioPage({
     }
     function renderImageLibrary() {
       elements.imageLibrary.replaceChildren();
-      const images = state.library;
+      const images = state.library.filter((image) => state.libraryFilter === "all" || image.category === state.libraryFilter);
+      const categoryLabels = { photo: "写真", anime: "动漫" };
       for (const image of images) {
         const button = document.createElement("sl-button");
         button.className = "library-card";
@@ -644,7 +659,10 @@ export function renderStudioPage({
         preview.alt = image.label;
         preview.loading = "lazy";
         preview.decoding = "async";
-        button.append(preview);
+        const category = document.createElement("span");
+        category.className = "library-card-category";
+        category.textContent = categoryLabels[image.category] || categoryLabels.photo;
+        button.append(preview, category);
         elements.imageLibrary.append(button);
       }
       state.libraryLoaded = true;
@@ -654,13 +672,15 @@ export function renderStudioPage({
         elements.imageLibraryEmpty.textContent = state.libraryError;
       } else if (!images.length && state.libraryLoaded) {
         elements.imageLibraryEmpty.hidden = false;
-        elements.imageLibraryEmpty.textContent = state.libraryAllowPublic
-          ? "还没有公开图片。你可以上传一张，管理员审核后会出现在这里。"
-          : "图片库暂时没有管理员公开的图片。";
+        elements.imageLibraryEmpty.textContent = state.library.length
+          ? "当前分类下还没有公开图片。"
+          : state.libraryAllowPublic
+            ? "还没有公开图片。你可以上传一张，管理员审核后会出现在这里。"
+            : "图片库暂时没有管理员公开的图片。";
       }
       elements.uploadImageButton.hidden = !state.libraryAllowPublic;
       elements.librarySummary.textContent = images.length
-        ? images.length + " 张已公开图片" + (state.libraryAllowPublic ? " · 游客已开放上传审核" : " · 仅管理员可上传")
+        ? state.library.length + " 张已公开图片 · " + state.library.filter((image) => image.category === "photo").length + " 写真 / " + state.library.filter((image) => image.category === "anime").length + " 动漫" + (state.libraryAllowPublic ? " · 游客已开放上传审核" : " · 仅管理员可上传")
         : state.libraryAllowPublic
           ? "暂无公开图片 · 游客可上传等待审核"
           : "暂无公开图片 · 管理员暂未开放上传";
@@ -689,6 +709,7 @@ export function renderStudioPage({
       }
       const file = await chooseImageFile();
       if (!file) return;
+      const category = elements.libraryUploadCategory.value || "photo";
       state.uploadingImage = true;
       elements.imageUploadJob.hidden = false;
       elements.uploadImageButton.disabled = true;
@@ -700,7 +721,7 @@ export function renderStudioPage({
           onProgress: (value, label) => setImageUploadStatus(label, "neutral", value, "自动压缩到 1 MB 以内，再进行上传。"),
         });
         setImageUploadStatus("上传压缩图", "neutral", 88, formatImageBytes(compressed.blob.size) + " WebP · 正在提交到实例图片库。");
-        const payload = await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file) });
+        const payload = await uploadLibraryImage(compressed.blob, { label: imageFileLabel(file), category });
         setImageUploadStatus("已提交审核", "success", 100, payload.message || "管理员发布后其他访客即可使用。");
         showToast(payload.message || "图片已提交审核");
         await loadImageLibrary();
@@ -968,6 +989,10 @@ export function renderStudioPage({
       refreshOutputs();
       schedulePreview();
       showToast("已恢复默认四角透明度");
+    });
+    elements.libraryFilter.addEventListener("sl-change", () => {
+      state.libraryFilter = elements.libraryFilter.value || "all";
+      renderImageLibrary();
     });
     elements.uploadImageButton.addEventListener("click", uploadLibraryBackground);
     elements.clearLibraryImage.addEventListener("click", clearLibraryImage);

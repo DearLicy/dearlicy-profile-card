@@ -1,12 +1,14 @@
 import { createSign, randomUUID } from "node:crypto";
 
 import {
+  DEFAULT_IMAGE_CATEGORY,
   MAX_LIBRARY_IMAGES,
   cleanLabel,
   emptyManifest,
   imageError,
   imageStats,
   makeImageEntry,
+  normalizeImageCategory,
   normalizeManifest,
   publicEntry,
   validId,
@@ -445,6 +447,7 @@ export class GoogleDriveImageStore {
   async create({
     buffer,
     label = "",
+    category = DEFAULT_IMAGE_CATEGORY,
     source = "guest",
     published = false,
   } = {}) {
@@ -466,6 +469,7 @@ export class GoogleDriveImageStore {
         id,
         buffer,
         label,
+        category,
         source,
         published,
         storageId: uploaded.id,
@@ -486,6 +490,7 @@ export class GoogleDriveImageStore {
     id,
     buffer,
     label = "",
+    category = DEFAULT_IMAGE_CATEGORY,
     source = "guest",
     published = false,
     createdAt = "",
@@ -517,6 +522,7 @@ export class GoogleDriveImageStore {
         id: normalized,
         buffer,
         label,
+        category,
         source,
         published,
         storageId: uploaded.id,
@@ -534,16 +540,23 @@ export class GoogleDriveImageStore {
     });
   }
 
-  async update(id, { published, label } = {}) {
+  async update(id, { published, label, category } = {}) {
     const normalized = validId(id);
     if (!normalized) return null;
     return this.enqueue(async () => {
       const manifest = await this.load();
       const entry = manifest.images.find((image) => image.id === normalized);
       if (!entry) return null;
-      const previous = { published: entry.published, label: entry.label };
+      const previous = {
+        published: entry.published,
+        label: entry.label,
+        category: entry.category,
+      };
       if (typeof published === "boolean") entry.published = published;
       if (label !== undefined) entry.label = cleanLabel(label, entry.label);
+      if (category !== undefined) {
+        entry.category = normalizeImageCategory(category, entry.category);
+      }
       try {
         await this.persistManifest(manifest);
       } catch (error) {

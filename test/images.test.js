@@ -31,21 +31,25 @@ test("parses WebP dimensions and persists the image library", async () => {
     const image = await store.create({
       buffer,
       label: "山景",
+      category: "anime",
       source: "guest",
       published: false,
     });
 
     assert.match(image.id, /^[0-9a-f-]{36}$/);
+    assert.equal(image.category, "anime");
     assert.equal(image.published, false);
     assert.equal((await store.list()).length, 0);
     assert.equal((await store.list({ includeUnpublished: true })).length, 1);
     assert.equal(await store.get(image.id), null);
     assert.equal((await store.get(image.id, { includeUnpublished: true })).buffer.length, buffer.length);
     assert.equal((await store.stats()).pending, 1);
+    assert.equal((await store.stats()).categories.anime.pending, 1);
 
-    await store.update(image.id, { published: true });
+    await store.update(image.id, { published: true, category: "photo" });
     assert.equal((await store.list()).length, 1);
     assert.equal((await store.get(image.id)).image.label, "山景");
+    assert.equal((await store.get(image.id)).image.category, "photo");
     assert.equal((await store.stats()).published, 1);
 
     assert.equal(await store.remove(image.id), true);

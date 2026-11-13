@@ -740,6 +740,11 @@ export const STUDIO_CSS = `
   .library-copy small { display: block; overflow: hidden; margin-top: 2px; color: var(--dim); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
   .library-toolbar sl-button::part(base) { min-height: 32px; padding-inline: 10px; font-size: 10.5px; }
   .library-toolbar sl-button::part(prefix) svg { width: 13px; height: 13px; }
+  .library-upload-actions { display: flex; align-items: end; gap: 7px; }
+  .library-upload-actions sl-select { width: 112px; }
+  .library-upload-actions sl-select::part(combobox) { min-height: 32px; }
+  .library-filter { margin: 0 0 14px; }
+  .library-filter::part(form-control-label) { margin-bottom: 5px; color: var(--dim); font-size: 9.5px; }
   .image-library {
     column-count: 2;
     column-gap: 8px;
@@ -770,10 +775,24 @@ export const STUDIO_CSS = `
     color: var(--ink);
     box-shadow: none;
   }
-  .library-card::part(label) { display: block; width: 100%; padding: 0; }
+  .library-card::part(label) { position: relative; display: block; width: 100%; padding: 0; }
   .library-card:hover::part(base) { transform: translateY(-1px); border-color: var(--line-strong); box-shadow: 2px 2px 0 var(--line-strong); }
   .library-card.is-selected::part(base) { border-color: var(--ink); box-shadow: 3px 3px 0 var(--blue); }
   .library-card img { display: block; width: 100%; height: auto; object-fit: contain; background: #11100e; }
+  .library-card-category {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    padding: 3px 7px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+    background: rgba(10,9,8,.72);
+    color: #fff8ec;
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    backdrop-filter: blur(6px);
+  }
   .library-empty {
     margin: 8px 0 0;
     padding: 14px;
@@ -985,6 +1004,9 @@ export const STUDIO_CSS = `
     .theme-card::part(label) { grid-template-columns: 48px minmax(0, 1fr) 18px; }
     .theme-art { width: 48px; height: 42px; }
     .library-toolbar { align-items: flex-start; flex-direction: column; }
+    .library-upload-actions { width: 100%; }
+    .library-upload-actions sl-select { flex: 1 1 auto; width: auto; }
+    .library-upload-actions sl-button { flex: 1 1 auto; }
     .library-toolbar sl-button { width: 100%; }
     .library-toolbar sl-button::part(base) { width: 100%; }
     .library-selection-actions { grid-template-columns: 1fr; }

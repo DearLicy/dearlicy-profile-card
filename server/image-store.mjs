@@ -12,6 +12,11 @@ import path from "node:path";
 export const MAX_IMAGE_BYTES = 1_000_000;
 export const MAX_LIBRARY_IMAGES = 500;
 export const IMAGE_MIME = "image/webp";
+export const IMAGE_CATEGORIES = Object.freeze({
+  photo: { label: "写真" },
+  anime: { label: "动漫" },
+});
+export const DEFAULT_IMAGE_CATEGORY = "photo";
 
 const WEBP_CHUNKS = new Set(["VP8 ", "VP8L", "VP8X"]);
 const IMAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -48,10 +53,16 @@ export function validId(value) {
   return IMAGE_ID.test(id) ? id : "";
 }
 
+export function normalizeImageCategory(value, fallback = DEFAULT_IMAGE_CATEGORY) {
+  const category = String(value ?? "").trim().toLowerCase();
+  return Object.hasOwn(IMAGE_CATEGORIES, category) ? category : fallback;
+}
+
 export function publicEntry(entry) {
   return {
     id: entry.id,
     label: entry.label,
+    category: normalizeImageCategory(entry.category),
     mime: entry.mime,
     bytes: entry.bytes,
     width: entry.width,
@@ -79,6 +90,7 @@ export function normalizeEntry(input) {
   return {
     id,
     label: cleanLabel(input.label, "未命名图片"),
+    category: normalizeImageCategory(input.category),
     mime: IMAGE_MIME,
     bytes,
     width,
@@ -167,6 +179,7 @@ export function makeImageEntry({
   id = randomUUID(),
   buffer,
   label = "",
+  category = DEFAULT_IMAGE_CATEGORY,
   source = "guest",
   published = false,
   storageId = "",
@@ -175,6 +188,7 @@ export function makeImageEntry({
   return {
     id,
     label: cleanLabel(label, `图片 ${new Date().toLocaleString("zh-CN")}`),
+    category: normalizeImageCategory(category),
     mime: IMAGE_MIME,
     bytes: buffer.byteLength,
     width: dimensions.width,
@@ -187,6 +201,19 @@ export function makeImageEntry({
 }
 
 export function imageStats(images) {
+  const categories = Object.fromEntries(
+    Object.keys(IMAGE_CATEGORIES).map((key) => [
+      key,
+      { total: 0, published: 0, pending: 0, bytes: 0 },
+    ]),
+  );
+  for (const image of images) {
+    const category = normalizeImageCategory(image.category);
+    categories[category].total += 1;
+    categories[category].bytes += Number(image.bytes) || 0;
+    if (image.published) categories[category].published += 1;
+    else categories[category].pending += 1;
+  }
   return {
     total: images.length,
     published: images.filter((image) => image.published).length,
@@ -194,6 +221,7 @@ export function imageStats(images) {
     bytes: images.reduce((sum, image) => sum + image.bytes, 0),
     maxBytes: MAX_IMAGE_BYTES,
     capacity: MAX_LIBRARY_IMAGES,
+    categories,
   };
 }
 
@@ -252,6 +280,10 @@ export class FileImageStore {
     return this.loaded;
   }
 
+  resetCache() {
+    this.loaded = null;
+  }
+
   async list({ includeUnpublished = false } = {}) {
     const manifest = await this.load();
     return manifest.images
@@ -280,6 +312,7 @@ export class FileImageStore {
   async create({
     buffer,
     label = "",
+    category = DEFAULT_IMAGE_CATEGORY,
     source = "guest",
     published = false,
   } = {}) {
@@ -288,7 +321,14 @@ export class FileImageStore {
       throw imageError(`图片库最多保存 ${MAX_LIBRARY_IMAGES} 张图片。`, 409);
     }
     const id = randomUUID();
-    const entry = makeImageEntry({ id, buffer, label, source, published });
+    const entry = makeImageEntry({
+      id,
+      buffer,
+      label,
+      category,
+      source,
+      published,
+    });
     await writeImageFile(imagePath(this.dataDir, id), buffer);
     try {
       await this.enqueue(async () => {
@@ -303,7 +343,7 @@ export class FileImageStore {
     return publicEntry(entry);
   }
 
-  async update(id, { published, label } = {}) {
+  async update(id, { published, label, category } = {}) {
     const normalized = validId(id);
     if (!normalized) return null;
     let updated = null;
@@ -311,10 +351,17 @@ export class FileImageStore {
       const manifest = await this.load();
       const entry = manifest.images.find((image) => image.id === normalized);
       if (!entry) return;
-      const previous = { published: entry.published, label: entry.label };
+      const previous = {
+        published: entry.published,
+        label: entry.label,
+        category: entry.category,
+      };
       if (typeof published === "boolean") entry.published = published;
       if (label !== undefined) {
         entry.label = cleanLabel(label, entry.label);
+      }
+      if (category !== undefined) {
+        entry.category = normalizeImageCategory(category, entry.category);
       }
       updated = publicEntry(entry);
       try {

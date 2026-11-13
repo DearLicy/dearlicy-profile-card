@@ -41,13 +41,20 @@ function githubStatus(env, secrets) {
 }
 
 export async function dashboardPayload(env, store, site) {
-  const [secrets, storeStatus] = store
-    ? await Promise.all([store.getSecrets(), store.status()])
-    : [{}, {}];
+  const [secrets, storeStatus, storage] = store
+    ? await Promise.all([
+        store.getSecrets(),
+        store.status(),
+        typeof store.getStorageStatus === "function"
+          ? store.getStorageStatus()
+          : Promise.resolve(null),
+      ])
+    : [{}, {}, null];
   return {
     site: publicSiteConfig(site),
     github: githubStatus(env, secrets),
     admin: { store: storeStatus },
+    storage,
   };
 }
 

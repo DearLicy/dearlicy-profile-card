@@ -44,6 +44,8 @@ export const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><circle cx="8.2" cy="9.2" r="1.7" stroke="currentColor" stroke-width="1.5"/><path d="m4 17 4.6-4.6a1.8 1.8 0 0 1 2.5 0l2.1 2.1 1.6-1.6a1.8 1.8 0 0 1 2.5 0L20 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   upload:
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  cloud:
+    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7.2 18.2h10.1a3.7 3.7 0 0 0 .5-7.4A5.6 5.6 0 0 0 7 8.9a4.7 4.7 0 0 0 .2 9.3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.2 13.3h5.6M12 10.5v5.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
   check:
     '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };

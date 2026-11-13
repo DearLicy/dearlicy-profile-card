@@ -36,10 +36,10 @@ export function adminHtmlResponse(request, status, html, extraHeaders = {}) {
   });
 }
 
-export function adminRedirect(location) {
+export function adminRedirect(location, extraHeaders = {}) {
   return new Response(null, {
     status: 302,
-    headers: adminHeaders({ Location: location }),
+    headers: adminHeaders({ Location: location, ...extraHeaders }),
   });
 }
 

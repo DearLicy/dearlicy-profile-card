@@ -17,6 +17,16 @@ import {
   updateConfig,
 } from "./controller.js";
 import {
+  clearGoogleDriveCredentials,
+  disconnectGoogleDrive,
+  googleDriveMigrationStatus,
+  handleGoogleDriveOAuthCallback,
+  saveGoogleDriveClient,
+  startGoogleDriveMigration,
+  startGoogleDriveOAuth,
+  testGoogleDriveConnection,
+} from "./google-drive.js";
+import {
   adminImagePath,
   handleAdminImageDelete,
   handleAdminImageList,
@@ -102,6 +112,53 @@ export async function handleAdminRequest(request, env, ctx, site) {
     return adminRedirect("/admin/login");
   }
 
+  if (
+    url.pathname === "/admin/api/google/config" &&
+    request.method === "PUT"
+  ) {
+    return saveGoogleDriveClient(request, store);
+  }
+  if (
+    url.pathname === "/admin/api/google/disconnect" &&
+    request.method === "POST"
+  ) {
+    return disconnectGoogleDrive(request, store);
+  }
+  if (
+    url.pathname === "/admin/api/google/credentials" &&
+    request.method === "DELETE"
+  ) {
+    return clearGoogleDriveCredentials(request, store);
+  }
+  if (
+    url.pathname === "/admin/api/google/test" &&
+    request.method === "POST"
+  ) {
+    return testGoogleDriveConnection(request, store);
+  }
+  if (url.pathname === "/admin/api/google/migrate") {
+    if (request.method === "GET") {
+      return adminJsonResponse(request, 200, {
+        ok: true,
+        job: googleDriveMigrationStatus(),
+      });
+    }
+    if (request.method === "POST") {
+      return startGoogleDriveMigration(request, store, ctx);
+    }
+  }
+  if (
+    url.pathname === "/admin/oauth/google/start" &&
+    ["GET", "HEAD"].includes(request.method)
+  ) {
+    return startGoogleDriveOAuth(request, store);
+  }
+  if (
+    url.pathname === "/admin/oauth/google/callback" &&
+    request.method === "GET"
+  ) {
+    return handleGoogleDriveOAuthCallback(request, store);
+  }
   if (
     url.pathname === "/admin/api/config" &&
     ["GET", "HEAD"].includes(request.method)

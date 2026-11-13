@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -184,7 +184,7 @@ test("image library supports visitor submissions and administrator moderation", 
     const cookie = login.headers.get("set-cookie").split(";")[0];
 
     const upload = await worker.fetch(
-      request("/api/images?label=Visitor%20photo", {
+      request("/api/images?label=Visitor%20photo&category=anime", {
         method: "POST",
         headers: { "Content-Type": "image/webp" },
         body: sampleWebp(),
@@ -196,6 +196,7 @@ test("image library supports visitor submissions and administrator moderation", 
     const uploaded = await upload.json();
     assert.equal(uploaded.pending, true);
     assert.equal(uploaded.image.published, false);
+    assert.equal(uploaded.image.category, "anime");
 
     const publicBefore = await (await worker.fetch(request("/api/images"), env, {})).json();
     assert.equal(publicBefore.images.length, 0);
@@ -229,9 +230,21 @@ test("image library supports visitor submissions and administrator moderation", 
     );
     assert.equal(publish.status, 200);
 
+    const classify = await worker.fetch(
+      request("/admin/api/images/" + uploaded.image.id, {
+        method: "PATCH",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({ category: "photo" }),
+      }),
+      env,
+      {},
+    );
+    assert.equal(classify.status, 200);
+
     const publicAfter = await (await worker.fetch(request("/api/images"), env, {})).json();
     assert.equal(publicAfter.images.length, 1);
     assert.equal(publicAfter.images[0].id, uploaded.image.id);
+    assert.equal(publicAfter.images[0].category, "photo");
     assert.equal(
       publicAfter.images[0].url,
       "https://profile.example.com/images/" + uploaded.image.id + ".webp",
@@ -256,6 +269,81 @@ test("image library supports visitor submissions and administrator moderation", 
     );
     assert.equal(remove.status, 200);
     assert.equal((await worker.fetch(request("/api/images"), env, {})).status, 200);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("administrator can save Google Drive client config and start authorization", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "profile-card-google-"));
+  const secret = "a-google-test-admin-secret-with-24-chars";
+  const clientSecret = "google-client-secret-value";
+  try {
+    const store = new FileSiteStore({
+      dataDir: directory,
+      adminSecret: secret,
+      defaults: { defaultUsername: "DearLicy" },
+    });
+    const env = { ...baseEnv, ADMIN_SECRET: secret, SITE_STORE: store };
+    const login = await worker.fetch(
+      request("/admin/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret }),
+      }),
+      env,
+      {},
+    );
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const save = await worker.fetch(
+      request("/admin/api/google/config", {
+        method: "PUT",
+        headers: { Cookie: cookie, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: "1234567890-example.apps.googleusercontent.com",
+          clientSecret,
+          folderId: "https://drive.google.com/drive/folders/folder_123",
+        }),
+      }),
+      env,
+      {},
+    );
+    assert.equal(save.status, 200);
+    const saved = await save.json();
+    assert.equal(saved.storage.clientId, "1234567890-example.apps.googleusercontent.com");
+    assert.equal(saved.storage.folderId, "folder_123");
+    assert.equal(saved.storage.hasClientSecret, true);
+    const onDisk = await readFile(path.join(directory, "config.json"), "utf8");
+    assert.ok(!onDisk.includes(clientSecret));
+
+    const start = await worker.fetch(
+      request("/admin/oauth/google/start", {
+        headers: { Cookie: cookie },
+      }),
+      env,
+      {},
+    );
+    assert.equal(start.status, 302);
+    const location = new URL(start.headers.get("location"));
+    assert.equal(location.origin, "https://accounts.google.com");
+    assert.equal(
+      location.searchParams.get("redirect_uri"),
+      "https://profile.example.com/admin/oauth/google/callback",
+    );
+    assert.match(start.headers.get("set-cookie"), /^pcard_google_oauth=/);
+
+    const clear = await worker.fetch(
+      request("/admin/api/google/credentials", {
+        method: "DELETE",
+        headers: { Cookie: cookie },
+      }),
+      env,
+      {},
+    );
+    assert.equal(clear.status, 200);
+    const cleared = await clear.json();
+    assert.equal(cleared.storage.clientId, "");
+    assert.equal(cleared.storage.hasClientSecret, false);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
