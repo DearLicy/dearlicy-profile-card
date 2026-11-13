@@ -5,6 +5,7 @@ import {
   applicationSettings,
   loadEnvironment,
 } from "./environment.mjs";
+import { createImageStore } from "./image-store-factory.mjs";
 import { FileSiteStore } from "./site-store.mjs";
 
 function installShutdown(server) {
@@ -20,10 +21,15 @@ function installShutdown(server) {
 export async function main() {
   await loadEnvironment(ROOT);
   const settings = applicationSettings();
+  const images = createImageStore({
+    dataDir: settings.dataDir,
+    env: process.env,
+  });
   const store = new FileSiteStore({
     dataDir: settings.dataDir,
     adminSecret: settings.adminSecret,
     defaults: settings.siteDefaults,
+    images,
   });
   const env = {
     ...process.env,

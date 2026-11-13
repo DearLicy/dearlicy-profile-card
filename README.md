@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://profile.akucb.com/"><img alt="在线使用" src="https://img.shields.io/badge/在线使用-profile.akucb.com-d6422e?style=flat-square"></a>
+  <a href="https://profile.galgame.vip/"><img alt="在线使用" src="https://img.shields.io/badge/在线使用-profile.galgame.vip-d6422e?style=flat-square"></a>
   <a href="https://github.com/DearLicy/dearlicy-profile-card/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/DearLicy/dearlicy-profile-card?style=flat-square"></a>
   <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-3c873a?style=flat-square">
   <img alt="Docker Ready" src="https://img.shields.io/badge/Docker-Ready-2496ed?style=flat-square&logo=docker&logoColor=white">
@@ -19,14 +19,14 @@
 
 ## 在线使用
 
-打开 **[profile.akucb.com](https://profile.akucb.com/)**，输入用户名、`@用户名` 或完整 GitHub 主页链接即可生成。
+打开 **[profile.galgame.vip](https://profile.galgame.vip/)**，输入用户名、`@用户名` 或完整 GitHub 主页链接即可生成。
 
 卡片会自动读取公开的 Stars、等级与评分、Followers、Repositories、年度贡献、语言构成和热门仓库。README 只需要一张 `<img>`，不需要 GitHub Actions 定时生成。
 
 ```html
 <p align="center">
-  <a href="https://profile.akucb.com/?username=YOUR_LOGIN">
-    <img width="100%" src="https://profile.akucb.com/api?username=YOUR_LOGIN" alt="YOUR_LOGIN 的 GitHub 主页卡片">
+  <a href="https://profile.galgame.vip/?username=YOUR_LOGIN">
+    <img width="100%" src="https://profile.galgame.vip/api?username=YOUR_LOGIN" alt="YOUR_LOGIN 的 GitHub 主页卡片">
   </a>
 </p>
 ```
@@ -37,7 +37,7 @@
 - **直接识别主页链接**：支持 `DearLicy`、`@DearLicy` 和 `https://github.com/DearLicy`。
 - **五套视觉主题**：墨轨、校样、蓝图、海报、瑞士，分别采用轨道、编辑、终端、海报和网格构图，而不是简单换色。
 - **可定制内容**：强调色、两行标题、简介、状态徽标、页脚备注和热门仓库展示。
-- **受控图片库**：访客或管理员选择的图片会先在浏览器压缩为不超过 1 MB 的 WebP。管理员可以公开、下线或删除图片；游客上传默认进入待审核状态。
+- **受控图片库**：访客或管理员选择的图片会先在浏览器压缩为不超过 1 MB 的 WebP。管理员可以公开、下线或删除图片；游客上传默认进入待审核状态。图片库既可保存在本地卷，也可完整交给 Google Drive。
 - **完整图片浏览**：前台使用侧边抽屉与瀑布流图片墙选图，后台使用完整尺寸灯箱预览。卡片通过 `bgImage` 引用公开图片，不再接受任意背景或头像 URL。
 - **公开 API 与自用模式**：实例所有者可以开放给所有人，也可以只允许指定账号。
 - **中文管理后台**：访问模式、实例信息、默认外观、GitHub 连接、缓存维护分区管理。
@@ -136,14 +136,15 @@ https://github.com/settings/tokens/new?description=Profile%20Card%20(read-only)
 
 ```bash
 curl -o card.svg \
-  'https://profile.akucb.com/api?username=DearLicy&theme=ocean&accent=%235D86FF&bgTL=0.7&bgTR=0.2&bgBL=0.5&bgBR=0.1'
+  'https://profile.galgame.vip/api?username=DearLicy&theme=ocean&accent=%235D86FF&bgTL=0.7&bgTR=0.2&bgBL=0.5&bgBR=0.1'
 ```
 
 ### 图片处理与图片库
 
 - 前台只从实例图片库选择背景。管理员上传后立即公开；游客上传会先进入待审核状态，由管理员决定是否公开。
 - 图片在**访客浏览器**中完成缩放和 WebP 压缩，单张最大 1 MB。原图不会上传到服务器，服务端只保存压缩后的结果。
-- 图片文件保存在 `data/images/`，索引保存在 `data/image-library.json`，默认每张图片的权限为 `0600`，目录权限为 `0700`。
+- 默认使用本地存储时，图片文件保存在 `data/images/`，索引保存在 `data/image-library.json`；每张图片权限为 `0600`，目录权限为 `0700`。
+- 启用 Google Drive 后，图片文件和 `profile-card-image-library.json` 索引都写入指定 Drive 文件夹。实例只缓存少量图片以降低延迟，不把图片副本写入本地磁盘。
 - 公开图片通过 `/images/:id.webp` 以一年不可变缓存提供；未公开图片只允许管理员会话读取。
 - SVG 生成时只读取已公开图片并内嵌为 data URI。删除或下线图片后，旧卡片下一次刷新会自动移除该背景。
 - 不再支持背景图片 URL、头像 URL 或 `bgData` inline 数据。头像始终来自 GitHub 返回的数据，避免把服务端变成任意 URL 代理。
@@ -184,13 +185,58 @@ Compose 默认只监听 `127.0.0.1:3410`。反向代理不在本仓库内提供�
 
 网关只需要把请求转发到 `127.0.0.1:3410`，并保留 `Host`、`X-Forwarded-Proto` 与 `X-Forwarded-Host`。图片上传请求体最大约 1 MB，Nginx 建议配置 `client_max_body_size 2m;`，否则可能返回 `413 Request Entity Too Large`。
 
+### Google Drive 图片库
+
+如果不想让图片落在服务器磁盘，可把 `IMAGE_STORAGE_DRIVER` 设为 `google-drive`。Drive 中会保存每张 `${uuid}.webp` 和一个 `profile-card-image-library.json` 索引；站点配置 `data/config.json` 仍保留在本地，用于保存访问模式、默认外观和加密后的 GitHub Token。
+
+推荐使用 OAuth 桌面客户端生成 refresh token：
+
+1. 在 Google Cloud Console 创建项目并启用 **Google Drive API**。
+2. 创建 **OAuth 客户端 ID**，应用类型选择 **桌面应用**。
+3. 在本机执行：
+
+```bash
+GOOGLE_DRIVE_CLIENT_ID="..." \
+GOOGLE_DRIVE_CLIENT_SECRET="..." \
+npm run google:drive:auth
+```
+
+命令会打开一次性授权页，在 `127.0.0.1` 接收回调，然后创建或复用名为 `Profile Card Image Library` 的 Drive 文件夹。凭据默认写入权限为 `0600` 的 `.env.google-drive`，不会打印到终端；确认后再合并到服务器 `.env`，并删除本地临时文件。
+
+生成的配置包含：
+
+```text
+IMAGE_STORAGE_DRIVER=google-drive
+GOOGLE_DRIVE_FOLDER_ID=...
+GOOGLE_DRIVE_CLIENT_ID=...
+GOOGLE_DRIVE_CLIENT_SECRET=...
+GOOGLE_DRIVE_REFRESH_TOKEN=...
+```
+
+也可以使用服务账号：把目标 Drive 文件夹共享给服务账号邮箱并授予编辑权限，然后将服务账号 JSON 做 base64 编码写入 `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64`，同时填写 `GOOGLE_DRIVE_FOLDER_ID`。服务账号方案不需要浏览器授权，适合长期无人值守的服务器。
+
+切换前若本地已有图片，可先执行一次迁移。迁移会保留原 UUID、审核状态和创建时间，且不会删除本地文件：
+
+```bash
+IMAGE_STORAGE_DRIVER=google-drive \
+GOOGLE_DRIVE_FOLDER_ID="..." \
+GOOGLE_DRIVE_CLIENT_ID="..." \
+GOOGLE_DRIVE_CLIENT_SECRET="..." \
+GOOGLE_DRIVE_REFRESH_TOKEN="..." \
+npm run google:drive:migrate
+```
+
+确认 Drive 中图片与索引正常后，再切换容器环境变量并清理本地图片。Google Drive 不可用时，图片库接口会返回 `503`，但站点配置和卡片数据仍可正常工作。
+
 ### 备份
 
-需要备份整个 `data/` 目录：
+本地图片存储模式需要备份整个 `data/` 目录：
 
 - `data/config.json`：实例配置与加密后的 GitHub 凭据；恢复时必须继续使用相同的 `ADMIN_SECRET`，否则旧凭据无法解密。
 - `data/image-library.json`：图片索引、来源、审核状态和尺寸信息。
 - `data/images/`：图片库的 WebP 文件。
+
+Google Drive 模式只需备份 Drive 文件夹中的 WebP 与 `profile-card-image-library.json`，同时单独备份本地的 `data/config.json`。恢复时保持 `ADMIN_SECRET` 不变，否则加密凭据无法解密。
 
 ## 本地开发
 
@@ -236,10 +282,15 @@ src/
   assets.js           图片校验、GitHub 头像读取与内嵌编码
 server/
   site-store.mjs      文件持久化与加密凭据
-  image-store.mjs     WebP 校验、图片文件与索引持久化
+  image-store.mjs     WebP 校验、本地图片文件与索引持久化
+  google-drive-store.mjs  Google Drive 图片、索引、OAuth 与服务账号
+  image-store-factory.mjs 按环境变量选择本地或 Drive 存储
   application.mjs     Node HTTP 适配与安全日志
   bootstrap.mjs       进程启动与优雅关闭
   vendor.mjs          Shoelace / Lit 静态资源
+scripts/
+  google-drive-auth.mjs        OAuth 授权与 Drive 文件夹初始化
+  migrate-images-to-drive.mjs  本地图片库迁移
 server.mjs            Node 入口
 ```
 
@@ -256,6 +307,13 @@ server.mjs            Node 入口
 | `PUBLIC_REPO_URL` | 否 | 前台右上角 GitHub 按钮的目标地址 |
 | `DATA_DIR` | 否 | 持久化目录，Docker 中为 `/app/data` |
 | `PORT` / `HOST` | 否 | 监听端口与地址 |
+| `IMAGE_STORAGE_DRIVER` | 否 | `file`（默认）或 `google-drive` |
+| `GOOGLE_DRIVE_FOLDER_ID` | Drive 模式必填 | Drive 文件夹 ID 或文件夹链接 |
+| `GOOGLE_DRIVE_CLIENT_ID` | OAuth 必填 | OAuth 桌面客户端 ID |
+| `GOOGLE_DRIVE_CLIENT_SECRET` | OAuth 必填 | OAuth 桌面客户端密钥 |
+| `GOOGLE_DRIVE_REFRESH_TOKEN` | OAuth 必填 | 由授权脚本生成，仅保存在服务器环境 |
+| `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64` | 服务账号必填 | base64 编码的服务账号 JSON |
+| `GOOGLE_DRIVE_SUBJECT` | 否 | Workspace 域委托时使用的用户邮箱 |
 
 后台保存的配置会覆盖 `SITE_MODE`、`DEFAULT_USERNAME` 和 `PUBLIC_REPO_URL` 的初始值。
 
@@ -268,6 +326,7 @@ server.mjs            Node 入口
 - 管理后台 Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动启用 `Secure`。
 - 所有写操作校验 Origin，并带有登录尝试限速。
 - Docker 容器以非 root 用户运行，丢弃 Linux capabilities，根文件系统只读，仅 `/app/data` 和 `/tmp` 可写。
+- Google OAuth refresh token、客户端密钥与服务账号私钥只从服务器环境读取，不写入日志、SVG、前端页面或仓库。
 - 公开实例仍应遵守 GitHub API 规则；大规模使用建议配置只读 Token，并在反向代理层增加限速。
 
 安全细节见 [`SECURITY.md`](SECURITY.md)。

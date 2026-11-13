@@ -9,6 +9,8 @@
     "start": "node server.mjs",
     "test": "node --test test/*.test.js",
     "render": "node scripts/render-local.mjs",
+    "google:drive:auth": "node scripts/google-drive-auth.mjs",
+    "google:drive:migrate": "node scripts/migrate-images-to-drive.mjs",
     "worker:dev": "wrangler dev",
     "worker:deploy": "wrangler deploy"
   },

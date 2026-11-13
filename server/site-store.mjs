@@ -51,11 +51,11 @@ function secretValue(secrets, key, adminSecret) {
 }
 
 export class FileSiteStore {
-  constructor({ dataDir, adminSecret, defaults = {} }) {
+  constructor({ dataDir, adminSecret, defaults = {}, images }) {
     this.filePath = statePath(dataDir);
     this.adminSecret = adminSecret;
     this.defaults = normalizeSiteConfig(defaults);
-    this.images = new FileImageStore({ dataDir });
+    this.images = images || new FileImageStore({ dataDir });
     this.loaded = null;
     this.writeQueue = Promise.resolve();
   }

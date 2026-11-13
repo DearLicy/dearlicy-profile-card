@@ -16,7 +16,7 @@ export const IMAGE_MIME = "image/webp";
 const WEBP_CHUNKS = new Set(["VP8 ", "VP8L", "VP8X"]);
 const IMAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function imageError(message, status = 400) {
+export function imageError(message, status = 400) {
   const error = new Error(message);
   error.status = status;
   return error;
@@ -34,7 +34,7 @@ function imagePath(dataDir, id) {
   return path.join(imagesDir(dataDir), `${id}.webp`);
 }
 
-function cleanLabel(value, fallback) {
+export function cleanLabel(value, fallback) {
   const label = String(value ?? "")
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
@@ -43,12 +43,12 @@ function cleanLabel(value, fallback) {
   return label || fallback;
 }
 
-function validId(value) {
+export function validId(value) {
   const id = String(value ?? "").trim().toLowerCase();
   return IMAGE_ID.test(id) ? id : "";
 }
 
-function publicEntry(entry) {
+export function publicEntry(entry) {
   return {
     id: entry.id,
     label: entry.label,
@@ -62,7 +62,7 @@ function publicEntry(entry) {
   };
 }
 
-function normalizeEntry(input) {
+export function normalizeEntry(input) {
   if (!input || typeof input !== "object") return null;
   const id = validId(input.id);
   const width = Number(input.width);
@@ -86,7 +86,20 @@ function normalizeEntry(input) {
     source: input.source === "admin" ? "admin" : "guest",
     published: Boolean(input.published),
     createdAt: String(input.createdAt || "").slice(0, 40),
+    storageId: String(input.storageId || "").trim().slice(0, 200),
   };
+}
+
+export function normalizeManifest(input) {
+  const entries = Array.isArray(input?.images) ? input.images : [];
+  return {
+    version: 1,
+    images: entries.map(normalizeEntry).filter(Boolean),
+  };
+}
+
+export function emptyManifest() {
+  return { version: 1, images: [] };
 }
 
 export function parseWebpDimensions(buffer) {
@@ -136,16 +149,60 @@ export function parseWebpDimensions(buffer) {
   return null;
 }
 
+export function validateImageBuffer(buffer) {
+  if (!Buffer.isBuffer(buffer) || !buffer.byteLength) {
+    throw imageError("图片内容为空。", 400);
+  }
+  if (buffer.byteLength > MAX_IMAGE_BYTES) {
+    throw imageError("图片超过 1 MB 上限。", 413);
+  }
+  const dimensions = parseWebpDimensions(buffer);
+  if (!dimensions?.width || !dimensions?.height) {
+    throw imageError("只接受浏览器压缩后的 WebP 图片。", 415);
+  }
+  return dimensions;
+}
+
+export function makeImageEntry({
+  id = randomUUID(),
+  buffer,
+  label = "",
+  source = "guest",
+  published = false,
+  storageId = "",
+}) {
+  const dimensions = validateImageBuffer(buffer);
+  return {
+    id,
+    label: cleanLabel(label, `图片 ${new Date().toLocaleString("zh-CN")}`),
+    mime: IMAGE_MIME,
+    bytes: buffer.byteLength,
+    width: dimensions.width,
+    height: dimensions.height,
+    source: source === "admin" ? "admin" : "guest",
+    published: Boolean(published),
+    createdAt: new Date().toISOString(),
+    storageId,
+  };
+}
+
+export function imageStats(images) {
+  return {
+    total: images.length,
+    published: images.filter((image) => image.published).length,
+    pending: images.filter((image) => !image.published).length,
+    bytes: images.reduce((sum, image) => sum + image.bytes, 0),
+    maxBytes: MAX_IMAGE_BYTES,
+    capacity: MAX_LIBRARY_IMAGES,
+  };
+}
+
 async function readManifest(filePath) {
   try {
     const raw = JSON.parse(await readFile(filePath, "utf8"));
-    const entries = Array.isArray(raw?.images) ? raw.images : [];
-    return {
-      version: 1,
-      images: entries.map(normalizeEntry).filter(Boolean),
-    };
+    return normalizeManifest(raw);
   } catch (error) {
-    if (error?.code === "ENOENT") return { version: 1, images: [] };
+    if (error?.code === "ENOENT") return emptyManifest();
     throw error;
   }
 }
@@ -226,32 +283,12 @@ export class FileImageStore {
     source = "guest",
     published = false,
   } = {}) {
-    if (!Buffer.isBuffer(buffer) || !buffer.byteLength) {
-      throw imageError("图片内容为空。", 400);
-    }
-    if (buffer.byteLength > MAX_IMAGE_BYTES) {
-      throw imageError("图片超过 1 MB 上限。", 413);
-    }
-    const dimensions = parseWebpDimensions(buffer);
-    if (!dimensions?.width || !dimensions?.height) {
-      throw imageError("只接受浏览器压缩后的 WebP 图片。", 415);
-    }
     const manifest = await this.load();
     if (manifest.images.length >= MAX_LIBRARY_IMAGES) {
       throw imageError(`图片库最多保存 ${MAX_LIBRARY_IMAGES} 张图片。`, 409);
     }
     const id = randomUUID();
-    const entry = {
-      id,
-      label: cleanLabel(label, `图片 ${new Date().toLocaleString("zh-CN")}`),
-      mime: IMAGE_MIME,
-      bytes: buffer.byteLength,
-      width: dimensions.width,
-      height: dimensions.height,
-      source: source === "admin" ? "admin" : "guest",
-      published: Boolean(published),
-      createdAt: new Date().toISOString(),
-    };
+    const entry = makeImageEntry({ id, buffer, label, source, published });
     await writeImageFile(imagePath(this.dataDir, id), buffer);
     try {
       await this.enqueue(async () => {
@@ -306,14 +343,7 @@ export class FileImageStore {
 
   async stats() {
     const images = await this.list({ includeUnpublished: true });
-    return {
-      total: images.length,
-      published: images.filter((image) => image.published).length,
-      pending: images.filter((image) => !image.published).length,
-      bytes: images.reduce((sum, image) => sum + image.bytes, 0),
-      maxBytes: MAX_IMAGE_BYTES,
-      capacity: MAX_LIBRARY_IMAGES,
-    };
+    return imageStats(images);
   }
 
   enqueue(task) {
