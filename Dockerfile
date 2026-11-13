@@ -2,12 +2,18 @@ FROM node:24-bookworm-slim AS dependencies
 
 WORKDIR /app
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
-
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund --prefer-offline \
+      --registry=https://registry.npmjs.org \
+      --fetch-retries=6 \
+      --fetch-retry-mintimeout=20000 \
+      --fetch-retry-maxtimeout=120000 \
+      --fetch-timeout=600000 \
+      --maxsockets=4
 
 FROM node:24-bookworm-slim AS builder
 
