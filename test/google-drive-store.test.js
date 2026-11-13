@@ -229,6 +229,36 @@ test("Google Drive migration preserves ids, publishing state and timestamps", as
   assert.equal((await store.list()).length, 1);
 });
 
+test("Google Drive updates roll back and removals keep the manifest consistent", async () => {
+  const client = new FakeDriveClient();
+  const store = new GoogleDriveImageStore({
+    client,
+    folderId: "drive-folder-123",
+  });
+  const created = await store.create({
+    buffer: sampleWebp(),
+    label: "公开图片",
+    source: "admin",
+    published: true,
+  });
+  const updateFileContent = client.updateFileContent.bind(client);
+  client.updateFileContent = async () => {
+    throw new Error("manifest write failed");
+  };
+  await assert.rejects(
+    store.update(created.id, { published: false }),
+    /manifest write failed/,
+  );
+  assert.equal((await store.list()).length, 1);
+
+  client.updateFileContent = updateFileContent;
+  client.deleteFile = async () => {
+    throw new Error("cleanup failed");
+  };
+  assert.equal(await store.remove(created.id), true);
+  assert.equal((await store.list({ includeUnpublished: true })).length, 0);
+});
+
 test("Google Drive OAuth URL requests offline Drive access with PKCE", () => {
   const authUrl = new URL(
     buildAuthUrl({

@@ -541,9 +541,15 @@ export class GoogleDriveImageStore {
       const manifest = await this.load();
       const entry = manifest.images.find((image) => image.id === normalized);
       if (!entry) return null;
+      const previous = { published: entry.published, label: entry.label };
       if (typeof published === "boolean") entry.published = published;
       if (label !== undefined) entry.label = cleanLabel(label, entry.label);
-      await this.persistManifest(manifest);
+      try {
+        await this.persistManifest(manifest);
+      } catch (error) {
+        Object.assign(entry, previous);
+        throw error;
+      }
       return publicEntry(entry);
     });
   }
@@ -559,14 +565,14 @@ export class GoogleDriveImageStore {
       if (index < 0) return false;
       const [entry] = manifest.images.splice(index, 1);
       try {
-        if (entry.storageId) {
-          await this.client.deleteFile(entry.storageId);
-          this.cache.delete(entry.storageId);
-        }
         await this.persistManifest(manifest);
       } catch (error) {
         manifest.images.splice(index, 0, entry);
         throw error;
+      }
+      this.cache.delete(entry.storageId);
+      if (entry.storageId) {
+        await this.client.deleteFile(entry.storageId).catch(() => undefined);
       }
       return true;
     });

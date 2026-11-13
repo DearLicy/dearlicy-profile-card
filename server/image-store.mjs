@@ -311,12 +311,19 @@ export class FileImageStore {
       const manifest = await this.load();
       const entry = manifest.images.find((image) => image.id === normalized);
       if (!entry) return;
+      const previous = { published: entry.published, label: entry.label };
       if (typeof published === "boolean") entry.published = published;
       if (label !== undefined) {
         entry.label = cleanLabel(label, entry.label);
       }
       updated = publicEntry(entry);
-      await writeManifest(this.filePath, manifest);
+      try {
+        await writeManifest(this.filePath, manifest);
+      } catch (error) {
+        Object.assign(entry, previous);
+        updated = null;
+        throw error;
+      }
     });
     return updated;
   }
@@ -334,9 +341,7 @@ export class FileImageStore {
       removed = true;
     });
     if (removed) {
-      await unlink(imagePath(this.dataDir, normalized)).catch((error) => {
-        if (error?.code !== "ENOENT") throw error;
-      });
+      await unlink(imagePath(this.dataDir, normalized)).catch(() => undefined);
     }
     return removed;
   }
