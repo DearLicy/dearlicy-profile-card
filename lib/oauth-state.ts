@@ -6,6 +6,7 @@ import { GOOGLE_STATE_COOKIE } from "@/lib/constants";
 export type OAuthCookieState = {
   state: string;
   verifier: string;
+  redirectUri: string;
   createdAt: number;
 };
 

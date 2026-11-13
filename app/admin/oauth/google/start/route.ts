@@ -14,13 +14,14 @@ import { externalOrigin } from "@/lib/request";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const origin = externalOrigin(request);
   if (!(await isAdmin())) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return NextResponse.redirect(new URL("/admin/login", origin));
   }
   const settings = getDriveSettings(true);
   if (!settings.clientId || !settings.clientSecret) {
     return NextResponse.redirect(
-      new URL("/admin/settings?tab=google&google=config-required", request.url),
+      new URL("/admin/settings?tab=google&google=config-required", origin),
     );
   }
   const state = randomBytes(24).toString("hex");
@@ -28,10 +29,11 @@ export async function GET(request: Request) {
   const challenge = createHash("sha256")
     .update(verifier)
     .digest("base64url");
-  const redirectUri = `${externalOrigin(request)}/admin/oauth/google/callback`;
+  const redirectUri = `${origin}/admin/oauth/google/callback`;
   const cookieState: OAuthCookieState = {
     state,
     verifier,
+    redirectUri,
     createdAt: Date.now(),
   };
   const response = NextResponse.redirect(
@@ -46,7 +48,10 @@ export async function GET(request: Request) {
     httpOnly: true,
     sameSite: "lax",
     secure:
-      request.headers.get("x-forwarded-proto") === "https" ||
+      request.headers
+        .get("x-forwarded-proto")
+        ?.split(",")[0]
+        ?.trim() === "https" ||
       new URL(request.url).protocol === "https:",
     path: "/admin/oauth/google",
     maxAge: 10 * 60,

@@ -17,11 +17,32 @@ import { externalOrigin } from "@/lib/request";
 
 export const runtime = "nodejs";
 
+function callbackOrigin(value?: string) {
+  try {
+    const url = new URL(value || "");
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.pathname !== "/admin/oauth/google/callback"
+    ) {
+      return "";
+    }
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const cookieState = decodeOAuthState(
+    readCookie(request, GOOGLE_STATE_COOKIE),
+  );
+  const origin =
+    callbackOrigin(cookieState?.redirectUri) || externalOrigin(request);
+  const redirect = (path: string) => NextResponse.redirect(new URL(path, origin));
   const fail = () => {
-    const response = NextResponse.redirect(
-      new URL("/admin/settings?tab=google&google=failed", request.url),
+    const response = redirect(
+      "/admin/settings?tab=google&google=failed",
     );
     response.cookies.set(GOOGLE_STATE_COOKIE, "", {
       path: "/admin/oauth/google",
@@ -30,12 +51,9 @@ export async function GET(request: Request) {
     return response;
   };
   if (!(await isAdmin())) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return redirect("/admin/login");
   }
   const state = url.searchParams.get("state") || "";
-  const cookieState = decodeOAuthState(
-    readCookie(request, GOOGLE_STATE_COOKIE),
-  );
   if (!cookieState || state !== cookieState.state || url.searchParams.get("error")) {
     return fail();
   }
@@ -43,7 +61,8 @@ export async function GET(request: Request) {
   if (!code) return fail();
   try {
     const settings = getDriveSettings(true);
-    const redirectUri = `${externalOrigin(request)}/admin/oauth/google/callback`;
+    const redirectUri =
+      cookieState.redirectUri || `${origin}/admin/oauth/google/callback`;
     const token = await exchangeDriveCode({
       code,
       clientId: settings.clientId,
@@ -61,8 +80,8 @@ export async function GET(request: Request) {
       folderId,
       accountEmail: account.emailAddress || account.displayName || "",
     });
-    const response = NextResponse.redirect(
-      new URL("/admin/settings?tab=google&google=connected", request.url),
+    const response = redirect(
+      "/admin/settings?tab=google&google=connected",
     );
     response.cookies.set(GOOGLE_STATE_COOKIE, "", {
       path: "/admin/oauth/google",
