@@ -25,7 +25,7 @@ const profile = {
 };
 
 describe("SVG renderer", () => {
-  it.each(["midnight", "ivory", "ocean", "ember", "graphite"])(
+  it.each(["midnight", "graphite", "whale"])(
     "renders a complete animated SVG for %s",
     (theme) => {
       const svg = renderProfileCard(profile, { theme });
@@ -47,8 +47,13 @@ describe("SVG renderer", () => {
     expect(svg).not.toContain('mark="A"B"');
   });
 
+  it("embeds the tide theme character assets as WebP data URIs", () => {
+    const svg = renderProfileCard(profile, { theme: "whale" });
+    expect(svg.match(/data:image\/webp/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
   it("keeps username and metrics when a background layer is present", () => {
-    for (const theme of ["midnight", "ivory", "ocean", "ember", "graphite"]) {
+    for (const theme of ["midnight", "graphite", "whale"]) {
       const svg = renderProfileCard(
         profile,
         {
@@ -71,9 +76,9 @@ describe("SVG renderer", () => {
   it("renders a themed error card rather than an empty response", () => {
     const svg = renderErrorCard(
       { title: "Unavailable", message: "Try later", detail: "Upstream" },
-      { theme: "ivory" },
+      { theme: "graphite" },
     );
     expect(svg).toContain("Unavailable");
-    expect(svg).toContain("#F7F2E8");
+    expect(svg).toContain("#F3F1EB");
   });
 });

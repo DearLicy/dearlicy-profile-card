@@ -1,15 +1,11 @@
-import { renderEditorialTheme } from "./editorial.js";
 import { renderOrbitTheme } from "./orbit.js";
-import { renderPosterTheme } from "./poster.js";
 import { renderSwissTheme } from "./swiss.js";
-import { renderTerminalTheme } from "./terminal.js";
+import { renderWhaleTheme } from "./whale.js";
 
 const RENDERERS = {
   orbit: renderOrbitTheme,
-  editorial: renderEditorialTheme,
-  terminal: renderTerminalTheme,
-  poster: renderPosterTheme,
   swiss: renderSwissTheme,
+  tidal: renderWhaleTheme,
 };
 
 export function renderCardTheme(layout, model, config, theme, options = {}) {

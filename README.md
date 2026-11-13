@@ -15,7 +15,8 @@
 ## 能做什么
 
 - 输入 GitHub 用户名、`@用户名` 或完整主页链接，直接生成一张实时更新的 SVG 卡片。
-- 五套拥有独立构图和视觉语言的版式，不是简单换色。
+- 每套主题都有独立的构图、层级与动效，不是简单换色。
+- 「潮汐档案」使用透明角色与鲸鱼伙伴素材，角色会浮在主题背景或你自己的媒体库图片上。
 - 支持主题色、标题、简介、状态文案、页脚、头部标识和四角背景透明度。
 - Stars、社区评分、Followers、Repositories、贡献、语言构成和热门仓库全部动态读取。
 - 前台媒体库支持完整比例预览、灯箱查看、分类筛选和浏览器内 WebP 压缩上传。
@@ -55,7 +56,7 @@
 | 参数 | 说明 |
 | --- | --- |
 | `username` / `user` / `url` | GitHub 用户名、`@用户名` 或完整主页链接 |
-| `theme` | `midnight`、`ivory`、`ocean`、`ember`、`graphite` |
+| `theme` | `midnight`（墨弧）、`graphite`（格纸）、`whale`（潮汐档案） |
 | `accent` | 六位十六进制强调色，例如 `%23CBB9FF` |
 | `bgImage` | 媒体库图片 UUID；SVG 会把 WebP 内联为 data URI |
 | `mark` | 左上角标识 |
@@ -68,7 +69,7 @@
 
 ```bash
 curl -o card.svg \
-  "http://127.0.0.1:3410/api?username=DearLicy&theme=ocean&accent=%235D86FF"
+  "http://127.0.0.1:3410/api?username=DearLicy&theme=graphite&accent=%23D6422E"
 ```
 
 ### 其他公开接口
@@ -124,7 +125,7 @@ SQLite 使用 WAL 模式。建议备份整个 `data/` 目录；在线备份前�
 - **工作台**：查看站点状态、待完成配置与默认卡片。
 - **主页与数据**：维护默认主页、访问范围、GitHub 只读 Token 与数据缓存。
 - **媒体库**：完整比例瀑布流、真实灯箱、分类、审核、批处理与云端迁移。
-- **默认样式**：五套主题、强调色、默认文案和四角背景透明度。
+- **默认样式**：主题、强调色、默认文案和四角背景透明度。
 - **设置**：站点、GitHub 与 Google Drive 配置集中在三个标签页中。
 
 ## Google Drive

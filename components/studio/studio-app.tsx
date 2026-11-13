@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -94,10 +95,12 @@ function ThemeTile({
   theme,
   active,
   onSelect,
+  wide = false,
 }: {
   theme: ThemeOption;
   active: boolean;
   onSelect: () => void;
+  wide?: boolean;
 }) {
   return (
     <Button
@@ -107,6 +110,7 @@ function ThemeTile({
       aria-pressed={active}
       className={cn(
         "h-auto w-full justify-start rounded-xl p-3 text-left shadow-none",
+        wide && "sm:col-span-2",
         active && "border-foreground bg-muted/55",
       )}
     >
@@ -114,18 +118,41 @@ function ThemeTile({
         className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg"
         style={{ background: theme.swatches[0] }}
       >
-        <span
-          className="absolute inset-x-2 top-2 h-1 rounded-full opacity-85"
-          style={{ background: theme.swatches[1] }}
-        />
-        <span
-          className="absolute left-2 top-5 h-5 w-1 rounded-full opacity-60"
-          style={{ background: theme.swatches[2] }}
-        />
-        <span
-          className="absolute bottom-2 right-2 size-2.5 rounded-full border"
-          style={{ borderColor: theme.swatches[2] }}
-        />
+        {theme.layout === "tidal" ? (
+          <>
+            <span
+              className="absolute -right-2 -top-2 size-9 rounded-full border"
+              style={{ borderColor: theme.swatches[1], opacity: 0.38 }}
+            />
+            <span
+              className="absolute inset-x-1 top-4 h-px -rotate-[18deg]"
+              style={{ background: theme.swatches[1], opacity: 0.4 }}
+            />
+            <Image
+              src="/theme-assets/whale-badge.webp"
+              alt=""
+              aria-hidden
+              width={420}
+              height={489}
+              className="absolute -bottom-1 left-1/2 h-10 w-auto -translate-x-1/2 object-contain"
+            />
+          </>
+        ) : (
+          <>
+            <span
+              className="absolute inset-x-2 top-2 h-1 rounded-full opacity-85"
+              style={{ background: theme.swatches[1] }}
+            />
+            <span
+              className="absolute left-2 top-5 h-5 w-1 rounded-full opacity-60"
+              style={{ background: theme.swatches[2] }}
+            />
+            <span
+              className="absolute bottom-2 right-2 size-2.5 rounded-full border"
+              style={{ borderColor: theme.swatches[2] }}
+            />
+          </>
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -236,6 +263,7 @@ function InspectorPanel({
                   theme={theme}
                   active={config.theme === name}
                   onSelect={() => update("theme", name)}
+                  wide={theme.layout === "tidal"}
                 />
               ))}
             </div>

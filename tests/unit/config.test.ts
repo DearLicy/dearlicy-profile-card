@@ -33,7 +33,7 @@ describe("card configuration", () => {
   it("normalizes query parameters and corner order", () => {
     const config = configFromSearchParams(
       new URLSearchParams({
-        theme: "ocean",
+        theme: "graphite",
         accent: "#ffaa00",
         bgTL: "0.7",
         bgTR: "0.1",
@@ -45,7 +45,7 @@ describe("card configuration", () => {
         note: "Keep building.",
       }),
     );
-    expect(config.theme).toBe("ocean");
+    expect(config.theme).toBe("graphite");
     expect(config.accent).toBe("#FFAA00");
     expect(config.backgroundCorners).toEqual({
       tl: 0.7,
@@ -84,14 +84,8 @@ describe("card configuration", () => {
     expect(config.intro).toHaveLength(120);
   });
 
-  it("ships five independent theme definitions", () => {
-    expect(Object.keys(CARD_THEMES)).toEqual([
-      "midnight",
-      "ivory",
-      "ocean",
-      "ember",
-      "graphite",
-    ]);
-    expect(new Set(Object.values(CARD_THEMES).map((theme) => theme.layout)).size).toBe(5);
+  it("ships independent theme definitions", () => {
+    expect(Object.keys(CARD_THEMES)).toEqual(["midnight", "graphite", "whale"]);
+    expect(new Set(Object.values(CARD_THEMES).map((theme) => theme.layout)).size).toBe(3);
   });
 });
