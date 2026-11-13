@@ -228,6 +228,12 @@ npm run google:drive:migrate
 
 确认 Drive 中图片与索引正常后，再切换容器环境变量并清理本地图片。Google Drive 不可用时，图片库接口会返回 `503`，但站点配置和卡片数据仍可正常工作。
 
+Docker 部署也可直接执行迁移，容器会读取同一个 `data/` 卷：
+
+```bash
+docker compose exec profile-card npm run google:drive:migrate
+```
+
 ### 备份
 
 本地图片存储模式需要备份整个 `data/` 目录：

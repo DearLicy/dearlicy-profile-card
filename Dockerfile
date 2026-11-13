@@ -7,6 +7,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY src ./src
 COPY server ./server
+COPY scripts ./scripts
 COPY server.mjs ./
 
 RUN mkdir -p /app/data && chown -R node:node /app
