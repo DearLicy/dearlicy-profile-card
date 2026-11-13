@@ -213,7 +213,9 @@ GOOGLE_DRIVE_CLIENT_SECRET=...
 GOOGLE_DRIVE_REFRESH_TOKEN=...
 ```
 
-也可以使用服务账号：把目标 Drive 文件夹共享给服务账号邮箱并授予编辑权限，然后将服务账号 JSON 做 base64 编码写入 `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64`，同时填写 `GOOGLE_DRIVE_FOLDER_ID`。服务账号方案不需要浏览器授权，适合长期无人值守的服务器。
+也可以使用服务账号：把 Google Workspace 共享盘中的目标文件夹授予服务账号编辑权限，然后将服务账号 JSON 做 base64 编码写入 `GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64`，同时填写 `GOOGLE_DRIVE_FOLDER_ID`。服务账号通常没有个人 My Drive 配额，因此不建议直接指向普通个人盘文件夹；个人账号优先使用上面的 OAuth 方案。
+
+如果 OAuth 应用长期停留在 **Testing** 发布状态，Google 可能让 refresh token 在 7 天后失效。长期部署前应把应用发布为 **In production**，或改用具备共享盘/域委托的服务账号。
 
 切换前若本地已有图片，可先执行一次迁移。迁移会保留原 UUID、审核状态和创建时间，且不会删除本地文件：
 
